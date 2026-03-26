@@ -438,6 +438,7 @@ const KDEFS={
     {l:'Sign-in Failures (7d)',c:'kc-rd',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`},k:'Count'},
     {l:'Active Incidents',c:'kc-cy',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Status=='Active'|summarize Count=count()`},k:'Count'},
     {l:'Orphaned Resources',c:'kc-bl',q:{t:'arg',q:`Resources|where(type=='microsoft.compute/disks'and properties.diskState=='Unattached')or(type=='microsoft.network/publicipaddresses'and isnull(properties.ipConfiguration))or(type=='microsoft.network/networksecuritygroups'and array_length(properties.subnets)==0 and array_length(properties.networkInterfaces)==0)|summarize Count=count()`},k:'Count'},
+    {l:'Secure Score (%)',c:'kc-cy',q:{t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`},k:'Score'},
   ],
   d7:[
     {l:'Incidents (30d)',c:'kc-cy',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|summarize Count=count()`},k:'Count'},
@@ -630,6 +631,54 @@ az network nsg rule delete -g &lt;rg&gt; --nsg-name &lt;nsg&gt; --name &lt;rule&
   --query "[].{Principal:principalName,Type:principalType}"
 az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscription &lt;sub&gt;</code></pre>
     <div class="note">Use the <strong>Quick Wins</strong> tab to identify high/critical controls fixable with a single config change. Sort by AffectedResources for highest blast radius per fix.</div>`},
+,
+  {label:'Secure Score',type:'arg',query:`securityresources
+| where type == 'microsoft.security/securescores'
+| extend DisplayName = tostring(properties.displayName)
+| extend ScoreCurrent = round(todouble(properties.score.current),2)
+| extend ScoreMax = round(todouble(properties.score.max),2)
+| extend ScorePct = round(todouble(properties.score.percentage)*100,1)
+| extend Environment = tostring(properties.environment)
+| project DisplayName, ScoreCurrent, ScoreMax, ScorePct, Environment, SubscriptionId=subscriptionId
+| order by ScorePct asc`},
+
+  {label:'UEBA Anomalies',type:'la',query:`BehaviorAnalytics
+| where TimeGenerated {TimeRange}
+| where InvestigationPriority >= 5
+| project TimeGenerated, UserName, UserPrincipalName, ActivityType, ActionType,
+    SourceIPAddress, SourceIPLocation, InvestigationPriority,
+    UsersInsights, DevicesInsights, ActivityInsights
+| order by InvestigationPriority desc
+| take 500`},
+
+  {label:'CA Policy Coverage',type:'la',query:`SigninLogs
+| where TimeGenerated {TimeRange}
+| mv-expand CAPolicy = todynamic(ConditionalAccessPolicies)
+| extend PolicyName = tostring(CAPolicy.displayName)
+| extend PolicyResult = tostring(CAPolicy.result)
+| where PolicyResult in ('success','failure','notApplied')
+| summarize
+    Success = countif(PolicyResult == 'success'),
+    Failure = countif(PolicyResult == 'failure'),
+    NotApplied = countif(PolicyResult == 'notApplied'),
+    Total = count()
+    by PolicyName
+| extend SuccessPct = round(todouble(Success)/Total*100,1)
+| order by Total desc
+| take 100`},
+
+  {label:'SP Sign-in Activity',type:'la',query:`AADServicePrincipalSignInLogs
+| where TimeGenerated {TimeRange}
+| summarize
+    SignInCount = count(),
+    LastSignIn = max(TimeGenerated),
+    UniqueIPs = dcount(IPAddress),
+    SuccessCount = countif(ResultType == 0),
+    FailureCount = countif(ResultType != 0)
+    by ServicePrincipalName, ServicePrincipalId, AppId
+| extend FailurePct = round(todouble(FailureCount)/SignInCount*100,1)
+| order by FailureCount desc
+| take 200`},
 ],
 d7:[
   {label:'Workspace Inventory',type:'arg',query:`Resources
@@ -709,6 +758,42 @@ d7:[
 | where TimeGenerated>=ago(30d)
 | summarize AlertCount=count() by bin(TimeGenerated,1d), ProductName
 | order by TimeGenerated asc`},
+
+  {label:'Proofpoint Threats',type:'la',query:`union
+  (ProofPointTAPMessagesBlocked_CL
+  | where TimeGenerated {TimeRange}
+  | extend ThreatType = 'Blocked'
+  | extend Threats = todynamic(threatsInfoMap_s)
+  | mv-expand Threat = Threats
+  | extend Classification = tostring(Threat.classification)
+  | extend ThreatUrl = tostring(Threat.threat)
+  | extend ThreatTime = todatetime(Threat.threatTime)
+  | project TimeGenerated, ThreatType, Classification, sender_s, toAddresses_s,
+      subject_s, senderIP_s, phishScore_d, malwareScore_d, spamScore_d, ThreatUrl),
+  (ProofPointTAPMessagesDelivered_CL
+  | where TimeGenerated {TimeRange}
+  | extend ThreatType = 'Delivered'
+  | extend Threats = todynamic(threatsInfoMap_s)
+  | mv-expand Threat = Threats
+  | extend Classification = tostring(Threat.classification)
+  | extend ThreatUrl = tostring(Threat.threat)
+  | project TimeGenerated, ThreatType, Classification, sender_s, toAddresses_s,
+      subject_s, senderIP_s, phishScore_d, malwareScore_d, spamScore_d, ThreatUrl)
+| order by TimeGenerated desc
+| take 500`},
+
+  {label:'Umbrella DNS Threats',type:'la',query:`Cisco_Umbrella_dns_CL
+| where TimeGenerated {TimeRange}
+| where Action_s == 'Blocked'
+| extend Categories = todynamic(Categories_s)
+| extend BlockedCategories = todynamic(Blocked_Categories_s)
+| summarize
+    BlockCount = count(),
+    UniqueIdentities = dcount(Policy_Identity_s),
+    UniqueIPs = dcount(InternalIp_s)
+    by Domain_s, tostring(BlockedCategories), ResponseCode_s
+| order by BlockCount desc
+| take 200`},
 ],
 d6:[
   {label:'Coverage Summary',type:'la',viz:'tiles',query:`DeviceInfo
