@@ -76,11 +76,8 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .kval.ldg{color:var(--txt3);font-size:18px;}
 
 /* SUB TABS */
-.stbar-wrap{position:relative;background:var(--bg3);border-bottom:1px solid var(--border);}
-.stbar{padding:0 36px 0 20px;display:flex;overflow-x:auto;scrollbar-width:none;white-space:nowrap;}
-.stbar::-webkit-scrollbar{display:none;}
-.stbar-arrow{position:absolute;top:0;right:0;height:100%;width:32px;background:linear-gradient(to right,transparent,var(--bg3) 60%);display:flex;align-items:center;justify-content:flex-end;padding-right:6px;cursor:pointer;z-index:10;font-size:14px;color:var(--txt2);}
-.stbar-arrow:hover{color:var(--cyan);}
+.stbar-wrap{background:var(--bg3);border-bottom:1px solid var(--border);}
+.stbar{padding:4px 20px;display:flex;flex-wrap:wrap;gap:0;}
 .stab{font-family:var(--fm);font-size:11px;color:var(--txt2);padding:8px 13px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;user-select:none;flex-shrink:0;}
 .stab:hover{color:var(--txt);}
 .stab.act{color:var(--cyan);border-bottom-color:var(--cyan);}
@@ -226,9 +223,9 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 </div>
 
 <div id="content">
-  <div class="dsect act" id="ds-d5"><div class="kstrip" id="kpi-d5"></div><div class="stbar-wrap"><div class="stbar" id="st-d5"></div><div class="stbar-arrow" onclick="document.getElementById('st-d5').scrollBy({left:200,behavior:'smooth'})">›</div></div><div id="pn-d5"></div></div>
-  <div class="dsect"     id="ds-d7"><div class="kstrip" id="kpi-d7"></div><div class="stbar-wrap"><div class="stbar" id="st-d7"></div><div class="stbar-arrow" onclick="document.getElementById('st-d7').scrollBy({left:200,behavior:'smooth'})">›</div></div><div id="pn-d7"></div></div>
-  <div class="dsect"     id="ds-d6"><div class="kstrip" id="kpi-d6"></div><div class="stbar-wrap"><div class="stbar" id="st-d6"></div><div class="stbar-arrow" onclick="document.getElementById('st-d6').scrollBy({left:200,behavior:'smooth'})">›</div></div><div id="pn-d6"></div></div>
+  <div class="dsect act" id="ds-d5"><div class="kstrip" id="kpi-d5"></div><div class="stbar-wrap"><div class="stbar" id="st-d5"></div></div><div id="pn-d5"></div></div>
+  <div class="dsect"     id="ds-d7"><div class="kstrip" id="kpi-d7"></div><div class="stbar-wrap"><div class="stbar" id="st-d7"></div></div><div id="pn-d7"></div></div>
+  <div class="dsect"     id="ds-d6"><div class="kstrip" id="kpi-d6"></div><div class="stbar-wrap"><div class="stbar" id="st-d6"></div></div><div id="pn-d6"></div></div>
 </div>
 
 <div id="lscr">
