@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ABS CyberDefense · Security Dashboard</title>
+<title>ABS Cyber Defense · Security Dashboard</title>
 <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -50,7 +50,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .ppill{background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);padding:1px 8px;border-radius:2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;}
 
 /* CONFIG WARN */
-#cfgwarn{display:none;margin:10px 20px 0;background:var(--yellow-dim);border:1px solid rgba(255,204,0,0.3);color:var(--yellow);font-family:var(--fm);font-size:11px;padding:8px 14px;border-radius:var(--r);}
+#cfgwarn{display:none;margin:10px 20px 0;background:var(--yellow-dim);border:1px solid rgba(255,204,0,0.3);color:var(--yellow);font-family:var(--fm);font-size:11px;padding:8px 14px;border-radius:var(--r);text-align:center;}
 
 /* MAIN TABS */
 #mainTabs{display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;overflow-x:auto;scrollbar-width:none;white-space:nowrap;}
@@ -201,7 +201,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   </div>
 </div>
 
-<div id="cfgwarn">⚠ Replace <code>YOUR_CLIENT_ID_HERE</code> and <code>YOUR_TENANT_ID_HERE</code> in the CONFIG block before authentication will work.</div>
+<div id="cfgwarn">⚠ &nbsp;App Registration pending — authentication will be enabled once the Client ID is received.</div>
 
 <div id="pbanner">
   <span class="ppill">Phase 1</span>
