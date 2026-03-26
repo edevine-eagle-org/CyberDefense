@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABS Cyber Defense · Security Dashboard</title>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#060a0f;--bg2:#0b1018;--bg3:#101820;--bg4:#151e2a;--bg5:#1a2535;
+  --border:#1c2738;--border2:#253348;
+  --cyan:#00d4ff;--cyan-dim:rgba(0,212,255,0.08);--cyan-glow:rgba(0,212,255,0.25);
+  --orange:#ff7b2e;--green:#00e676;--green-dim:rgba(0,230,118,0.08);
+  --red:#ff3d57;--red-dim:rgba(255,61,87,0.08);
+  --yellow:#ffcc00;--yellow-dim:rgba(255,204,0,0.08);--blue:#4d9fff;
+  --txt:#c0ccdf;--txt2:#607080;--txt3:#344055;--heading:#e4eeff;
+  --fh:'Rajdhani',sans-serif;--fb:'IBM Plex Sans',sans-serif;--fm:'IBM Plex Mono',monospace;
+  --r:4px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--txt);font-family:var(--fb);font-size:13px;line-height:1.5;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);pointer-events:none;z-index:9999;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* TOPBAR */
+#topbar{position:sticky;top:0;z-index:500;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:14px;height:50px;box-shadow:0 2px 24px rgba(0,0,0,0.6);}
+.logo{font-family:var(--fh);font-size:19px;font-weight:700;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;white-space:nowrap;}
+.logo em{color:var(--txt3);font-style:normal;}
+.vsep{width:1px;height:22px;background:var(--border);flex-shrink:0;}
+.tmeta{font-family:var(--fm);font-size:10px;color:var(--txt2);}
+.tmeta b{color:var(--txt);}
+.tright{margin-left:auto;display:flex;align-items:center;gap:10px;}
+#trSel{background:var(--bg3);border:1px solid var(--border2);color:var(--txt);font-family:var(--fm);font-size:11px;padding:5px 9px;border-radius:var(--r);cursor:pointer;outline:none;}
+#trSel:focus{border-color:var(--cyan);}
+.tbbtn{background:transparent;border:1px solid var(--border2);color:var(--txt2);font-family:var(--fm);font-size:11px;padding:5px 11px;border-radius:var(--r);cursor:pointer;transition:all 0.15s;}
+.tbbtn:hover{border-color:var(--cyan);color:var(--cyan);}
+#ubadge{display:none;align-items:center;gap:7px;font-family:var(--fm);font-size:10px;color:var(--txt2);}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+#loginBtn{background:var(--cyan);border:none;color:var(--bg);font-family:var(--fh);font-size:13px;font-weight:700;letter-spacing:1.5px;padding:6px 18px;border-radius:var(--r);cursor:pointer;text-transform:uppercase;transition:all 0.2s;}
+#loginBtn:hover{background:#33ddff;box-shadow:0 0 20px var(--cyan-glow);}
+
+/* PHASE BANNER */
+#pbanner{display:none;background:#080f14;border-bottom:1px solid var(--border);padding:5px 20px;font-family:var(--fm);font-size:10px;color:var(--txt3);align-items:center;gap:14px;}
+.ppill{background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);padding:1px 8px;border-radius:2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;}
+
+/* CONFIG WARN */
+#cfgwarn{display:none;margin:10px 20px 0;background:var(--yellow-dim);border:1px solid rgba(255,204,0,0.3);color:var(--yellow);font-family:var(--fm);font-size:11px;padding:8px 14px;border-radius:var(--r);}
+
+/* MAIN TABS */
+#mainTabs{display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;overflow-x:auto;scrollbar-width:none;white-space:nowrap;}
+#mainTabs::-webkit-scrollbar{display:none;}
+.mtab{display:inline-block;font-family:var(--fh);font-size:13px;font-weight:500;letter-spacing:0.5px;color:var(--txt2);padding:11px 18px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;}
+.mtab:hover:not(.dis){color:var(--txt);}
+.mtab.act{color:var(--cyan);border-bottom-color:var(--cyan);}
+.mtab.dis{color:var(--txt3);cursor:default;}
+
+/* CONTENT */
+#content{display:none;}
+.dsect{display:none;}
+.dsect.act{display:block;}
+
+/* KPI STRIP */
+.kstrip{padding:14px 20px;background:var(--bg2);border-bottom:1px solid var(--border);display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
+.kcard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden;}
+.kcard::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kc-cy::after{background:var(--cyan)}.kc-rd::after{background:var(--red)}.kc-gn::after{background:var(--green)}.kc-yw::after{background:var(--yellow)}.kc-bl::after{background:var(--blue)}.kc-or::after{background:var(--orange)}
+.klbl{font-family:var(--fm);font-size:9px;color:var(--txt2);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;}
+.kval{font-family:var(--fh);font-size:26px;font-weight:700;line-height:1;}
+.kc-cy .kval{color:var(--cyan)}.kc-rd .kval{color:var(--red)}.kc-gn .kval{color:var(--green)}.kc-yw .kval{color:var(--yellow)}.kc-bl .kval{color:var(--blue)}.kc-or .kval{color:var(--orange)}
+.kval.ldg{color:var(--txt3);font-size:18px;}
+
+/* SUB TABS */
+.stbar{background:var(--bg3);border-bottom:1px solid var(--border);padding:0 20px;display:flex;overflow-x:auto;scrollbar-width:none;}
+.stbar::-webkit-scrollbar{display:none;}
+.stab{font-family:var(--fm);font-size:11px;color:var(--txt2);padding:8px 13px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;user-select:none;flex-shrink:0;}
+.stab:hover{color:var(--txt);}
+.stab.act{color:var(--cyan);border-bottom-color:var(--cyan);}
+
+/* PANELS */
+.qpan{display:none;padding:18px 20px;}
+.qpan.act{display:block;animation:fu 0.2s ease;}
+@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.phdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.ptitle{font-family:var(--fh);font-size:15px;font-weight:600;color:var(--heading);letter-spacing:0.5px;}
+.phr{display:flex;align-items:center;gap:8px;}
+.qbadge{padding:2px 7px;border-radius:2px;font-family:var(--fm);font-size:9px;letter-spacing:1px;text-transform:uppercase;font-weight:500;}
+.qb-arg{background:#0d1e35;border:1px solid #1a3a60;color:#5aabff;}
+.qb-la{background:#0d2218;border:1px solid #1a4530;color:#50d090;}
+.qb-st{background:#1a1a0d;border:1px solid #3a3010;color:#aaaa50;}
+.runbtn{background:transparent;border:1px solid var(--border2);color:var(--txt2);font-family:var(--fm);font-size:10px;padding:3px 9px;border-radius:2px;cursor:pointer;transition:all 0.15s;}
+.runbtn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* TABLE */
+.twrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.tfilt{padding:7px 12px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.tfilt input{background:var(--bg);border:1px solid var(--border2);color:var(--txt);font-family:var(--fm);font-size:11px;padding:4px 9px;border-radius:2px;width:240px;outline:none;transition:border-color 0.15s;}
+.tfilt input:focus{border-color:var(--cyan);}
+.tfilt input::placeholder{color:var(--txt3);}
+.tscroll{overflow-x:auto;max-height:520px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-family:var(--fm);font-size:11.5px;}
+thead th{background:var(--bg4);color:var(--txt2);font-weight:500;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;padding:8px 11px;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap;position:sticky;top:0;z-index:10;}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
+tbody tr:hover{background:var(--bg3);}
+tbody td{padding:6px 11px;color:var(--txt);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tfoot{padding:5px 11px;background:var(--bg3);border-top:1px solid var(--border);font-family:var(--fm);font-size:9.5px;color:var(--txt3);}
+a.pl{color:var(--cyan);text-decoration:none;font-size:10px;border:1px solid var(--cyan-dim);padding:2px 7px;border-radius:2px;transition:all 0.12s;white-space:nowrap;}
+a.pl:hover{background:var(--cyan-dim);border-color:var(--cyan);}
+
+/* CHIPS */
+.chip{display:inline-block;padding:1px 7px;border-radius:2px;font-size:10px;font-weight:500;white-space:nowrap;}
+.cg{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,230,118,0.2);}
+.cr{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,61,87,0.2);}
+.cy{background:var(--yellow-dim);color:var(--yellow);border:1px solid rgba(255,204,0,0.2);}
+.cb{background:rgba(77,159,255,0.08);color:var(--blue);border:1px solid rgba(77,159,255,0.2);}
+
+/* STATES */
+.sbox{padding:44px 20px;text-align:center;font-family:var(--fm);font-size:11.5px;color:var(--txt3);}
+.sico{font-size:24px;margin-bottom:10px;opacity:0.4;}
+.lbar{width:100%;height:2px;background:var(--border);overflow:hidden;position:relative;}
+.lbar::after{content:'';position:absolute;height:100%;width:28%;background:var(--cyan);animation:lb 1.1s ease-in-out infinite;box-shadow:0 0 12px var(--cyan);}
+@keyframes lb{0%{left:-28%}100%{left:110%}}
+.sk{animation:sk 1.4s ease-in-out infinite;}
+@keyframes sk{0%,100%{opacity:0.3}50%{opacity:0.7}}
+
+/* CHART */
+.cwrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;}
+.cwrap canvas{max-height:320px;}
+
+/* METRIC TILES */
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
+.mtile{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 15px;position:relative;overflow:hidden;}
+.mtile::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--cyan);}
+.mlbl{font-family:var(--fm);font-size:9.5px;color:var(--txt2);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:5px;}
+.mval{font-family:var(--fh);font-size:30px;font-weight:700;color:var(--cyan);line-height:1;}
+
+/* STATIC CONTENT */
+.scont{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px 24px;font-size:13px;line-height:1.7;color:var(--txt);}
+.scont h3{font-family:var(--fh);font-size:15px;color:var(--heading);margin:18px 0 8px;font-weight:600;}
+.scont h3:first-child{margin-top:0;}
+.scont p{color:var(--txt2);margin-bottom:10px;}
+.scont code{background:var(--bg3);border:1px solid var(--border2);border-radius:2px;font-family:var(--fm);font-size:11px;color:var(--cyan);padding:1px 5px;}
+.scont pre{background:var(--bg3);border:1px solid var(--border2);border-radius:3px;font-family:var(--fm);font-size:11px;padding:12px 14px;overflow-x:auto;margin:8px 0;color:var(--txt);}
+.scont pre code{background:none;border:none;padding:0;color:inherit;}
+.scont .note{background:var(--yellow-dim);border-left:3px solid var(--yellow);padding:8px 12px;border-radius:2px;margin:10px 0;font-size:12px;color:var(--txt2);}
+
+/* LOGIN */
+#lscr{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 50px);padding:40px;flex-direction:column;}
+.lcard{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:48px 52px;max-width:440px;width:100%;text-align:center;position:relative;overflow:hidden;}
+.lcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--cyan),transparent);}
+.llogo{font-family:var(--fh);font-size:30px;font-weight:700;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;margin-bottom:4px;}
+.lsub{font-family:var(--fm);font-size:10px;color:var(--txt3);letter-spacing:2px;margin-bottom:28px;text-transform:uppercase;}
+.ldesc{font-size:12px;color:var(--txt2);line-height:1.8;margin-bottom:28px;}
+.lcta{background:var(--cyan);border:none;color:var(--bg);font-family:var(--fh);font-size:14px;font-weight:700;letter-spacing:2px;padding:12px 32px;border-radius:3px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;width:100%;}
+.lcta:hover{background:#33ddff;box-shadow:0 0 28px var(--cyan-glow);}
+.lnote{margin-top:18px;font-family:var(--fm);font-size:9.5px;color:var(--txt3);line-height:1.7;}
+
+@media(max-width:768px){
+  #topbar{padding:0 12px;gap:8px;}.logo{font-size:15px;}
+  .qpan{padding:12px;}.lcard{padding:32px 20px;}
+  .kstrip{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<script>
+const CFG={
+  clientId:'YOUR_CLIENT_ID_HERE',        // ← paste Client ID once App Registration is created
+  tenantId:'d810b06c-d004-4d52-b0aa-4f3581ee7020',
+  workspaceId:'7123fe2d-f76e-4027-8784-f9b6eec61ba8',
+  wsResourceId:'/subscriptions/7ca56f5e-a44c-4311-a34a-0729be8f5a6e/resourceGroups/rg-security-prod/providers/Microsoft.OperationalInsights/workspaces/law-security-prod',
+  subscriptions:['7ca56f5e-a44c-4311-a34a-0729be8f5a6e'],
+};
+const NCFG=CFG.clientId==='YOUR_CLIENT_ID_HERE';
+const TR_ISO={'1d':'P1D','7d':'P7D','14d':'P14D','30d':'P30D'};
+const TR_AGO={'1d':'1d','7d':'7d','14d':'14d','30d':'30d'};
+function gtr(){return document.getElementById('trSel').value;}
+function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
+</script>
+
+<div id="topbar">
+  <div class="logo">ABS<em> · </em>CYBER DEFENSE</div>
+  <div class="vsep"></div>
+  <div class="tmeta"><b>law-security-prod</b> &nbsp;·&nbsp; rg-security-prod &nbsp;·&nbsp; Commercial Azure</div>
+  <div class="tright">
+    <select id="trSel" onchange="onTRChange()">
+      <option value="1d">Last 24h</option>
+      <option value="7d" selected>Last 7 days</option>
+      <option value="14d">Last 14 days</option>
+      <option value="30d">Last 30 days</option>
+    </select>
+    <button class="tbbtn" onclick="refreshAct()">↺ Refresh</button>
+    <div id="ubadge"><div class="pdot"></div><span id="uemail"></span></div>
+    <button id="loginBtn" onclick="signIn()">Sign In</button>
+  </div>
+</div>
+
+<div id="cfgwarn">⚠ Replace <code>YOUR_CLIENT_ID_HERE</code> and <code>YOUR_TENANT_ID_HERE</code> in the CONFIG block before authentication will work.</div>
+
+<div id="pbanner">
+  <span class="ppill">Phase 1</span>
+  <span style="color:var(--txt2)">Security Posture · Sentinel Health · MDE Coverage</span>
+  <span style="margin-left:auto">Phase 2: Tenant &amp; Governance · Networking · Compute · Storage · AI · Inventory · GitHub</span>
+</div>
+
+<div id="mainTabs">
+  <span class="mtab act" onclick="switchD('d5',this)">🛡️ Security Posture</span>
+  <span class="mtab"     onclick="switchD('d7',this)">🔍 Sentinel Health</span>
+  <span class="mtab"     onclick="switchD('d6',this)">🖥️ MDE Coverage</span>
+  <span class="mtab dis" title="Phase 2">🏢 Tenant &amp; Governance</span>
+  <span class="mtab dis" title="Phase 2">🌐 Networking</span>
+  <span class="mtab dis" title="Phase 2">💻 Compute</span>
+  <span class="mtab dis" title="Phase 2">🗄️ Data &amp; Storage</span>
+  <span class="mtab dis" title="Phase 2">🤖 AI &amp; Apps</span>
+  <span class="mtab dis" title="Phase 2">📋 Full Inventory</span>
+  <span class="mtab dis" title="Phase 2">🐙 GitHub / DevOps</span>
+</div>
+
+<div id="content">
+  <div class="dsect act" id="ds-d5"><div class="kstrip" id="kpi-d5"></div><div class="stbar" id="st-d5"></div><div id="pn-d5"></div></div>
+  <div class="dsect"     id="ds-d7"><div class="kstrip" id="kpi-d7"></div><div class="stbar" id="st-d7"></div><div id="pn-d7"></div></div>
+  <div class="dsect"     id="ds-d6"><div class="kstrip" id="kpi-d6"></div><div class="stbar" id="st-d6"></div><div id="pn-d6"></div></div>
+</div>
+
+<div id="lscr">
+  <div class="lcard">
+    <div class="llogo">ABS</div>
+    <div class="lsub">Cyber Defense · Security Dashboard</div>
+    <div class="ldesc">Live security data from Microsoft Sentinel, Defender for Endpoint, Azure Resource Graph, and Log Analytics. Sign in with your ABS Azure AD account to load live data.</div>
+    <button class="lcta" onclick="signIn()">Sign In with Azure AD</button>
+    <div class="lnote">Requires: Log Analytics Reader · Security Reader · Reader on subscriptions<br>Data is fetched live on every open — nothing is cached here.</div>
+  </div>
+</div>
+
+<script>
+// ── MSAL ─────────────────────────────────────────────────────
+let mApp=null,acct=null;
+function initMsal(){
+  if(NCFG)return;
+  mApp=new msal.PublicClientApplication({
+    auth:{clientId:CFG.clientId,authority:`https://login.microsoftonline.com/${CFG.tenantId}`,redirectUri:location.origin+location.pathname},
+    cache:{cacheLocation:'sessionStorage'},
+  });
+}
+async function signIn(){
+  if(NCFG){alert('Fill in clientId and tenantId in CONFIG first.');return;}
+  try{const r=await mApp.loginPopup({scopes:['openid','profile','email','https://management.azure.com/user_impersonation','https://api.loganalytics.io/Data.Read']});acct=r.account;onAuth();}
+  catch(e){alert('Sign-in failed: '+e.message);}
+}
+async function tok(scope){
+  const req={scopes:[scope],account:acct};
+  try{return(await mApp.acquireTokenSilent(req)).accessToken;}
+  catch{return(await mApp.acquireTokenPopup(req)).accessToken;}
+}
+
+// ── API ───────────────────────────────────────────────────────
+async function runARG(q){
+  const t=await tok('https://management.azure.com/user_impersonation');
+  const r=await fetch('https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01',{
+    method:'POST',headers:{'Authorization':'Bearer '+t,'Content-Type':'application/json'},
+    body:JSON.stringify({query:q,subscriptions:CFG.subscriptions,options:{resultFormat:'objectArray',top:5000}})
+  });
+  if(!r.ok)throw new Error(`ARG ${r.status}: ${await r.text()}`);
+  return(await r.json()).data||[];
+}
+async function runLA(q){
+  const t=await tok('https://api.loganalytics.io/Data.Read');
+  const r=await fetch(`https://api.loganalytics.io/v1/workspaces/${CFG.workspaceId}/query`,{
+    method:'POST',headers:{'Authorization':'Bearer '+t,'Content-Type':'application/json'},
+    body:JSON.stringify({query:itr(q),timespan:TR_ISO[gtr()]})
+  });
+  if(!r.ok)throw new Error(`LA ${r.status}: ${await r.text()}`);
+  const d=await r.json();
+  if(!d.tables?.[0])return[];
+  const tb=d.tables[0];
+  return tb.rows.map(row=>Object.fromEntries(tb.columns.map((c,i)=>[c.name,row[i]])));
+}
+
+// ── CHARTS ────────────────────────────────────────────────────
+const CReg={};
+function dChart(id){if(CReg[id]){CReg[id].destroy();delete CReg[id];}}
+const CCOLORS=['#00d4ff','#00e676','#ff7b2e','#ff3d57','#ffcc00','#4d9fff','#c084fc','#fb923c','#34d399','#f472b6'];
+
+function renderChart(rows,cid,type){
+  dChart(cid);
+  const el=document.getElementById(cid);
+  if(!rows?.length){el.innerHTML=emSt();return;}
+  const keys=Object.keys(rows[0]);
+  const tKey=keys.find(k=>k.toLowerCase().includes('time')||k.toLowerCase().includes('date'));
+  const cKey=keys.find(k=>!k.toLowerCase().includes('time')&&!k.toLowerCase().includes('date')&&typeof rows[0][k]==='string');
+  const vKey=keys.find(k=>typeof rows[0][k]==='number');
+  if(!tKey||!vKey){renderTable(rows,cid);return;}
+  const fmt=v=>v?new Date(v).toLocaleDateString():'';
+  let labels,datasets;
+  if(cKey){
+    const cats=[...new Set(rows.map(r=>r[cKey]))];
+    labels=[...new Set(rows.map(r=>fmt(r[tKey])))];
+    datasets=cats.map((cat,i)=>{
+      const data=labels.map(lbl=>{const m=rows.find(r=>fmt(r[tKey])===lbl&&r[cKey]===cat);return m?m[vKey]:0;});
+      const c=CCOLORS[i%CCOLORS.length];
+      return{label:cat,data,borderColor:c,backgroundColor:c+'22',fill:type==='line',tension:0.3,pointRadius:2,borderWidth:1.5};
+    });
+  }else{
+    labels=rows.map(r=>fmt(r[tKey]));
+    const c=CCOLORS[0];
+    datasets=[{label:vKey,data:rows.map(r=>r[vKey]),borderColor:c,backgroundColor:c+'22',fill:type==='line',tension:0.3,pointRadius:2,borderWidth:1.5}];
+  }
+  el.innerHTML=`<div class="cwrap"><canvas id="cv_${cid}"></canvas></div>`;
+  CReg[cid]=new Chart(document.getElementById('cv_'+cid).getContext('2d'),{
+    type,data:{labels,datasets},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{color:'#607080',font:{family:'IBM Plex Mono',size:10},boxWidth:10}},
+        tooltip:{backgroundColor:'#0b1018',borderColor:'#1c2738',borderWidth:1,titleColor:'#c0ccdf',bodyColor:'#607080',titleFont:{family:'IBM Plex Mono'},bodyFont:{family:'IBM Plex Mono',size:10}}},
+      scales:{x:{ticks:{color:'#607080',font:{family:'IBM Plex Mono',size:9},maxRotation:30},grid:{color:'#1c2738'}},
+              y:{ticks:{color:'#607080',font:{family:'IBM Plex Mono',size:9}},grid:{color:'#1c2738'}}}}
+  });
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+const URLC=new Set(['PortalLink','IAMLink','DefenderLink','MDELink','IncidentUrl','SentinelLink']);
+function renderRes(rows,cid,viz){
+  if(viz==='tiles')return renderTiles(rows,cid);
+  if(viz==='timechart')return renderChart(rows,cid,'line');
+  if(viz==='barchart')return renderChart(rows,cid,'bar');
+  renderTable(rows,cid);
+}
+function renderTiles(rows,cid){
+  const el=document.getElementById(cid);
+  if(!rows?.length){el.innerHTML=emSt();return;}
+  const r=rows[0];const ks=Object.keys(r);
+  el.innerHTML=`<div class="tgrid">${ks.map(k=>`<div class="mtile"><div class="mlbl">${k}</div><div class="mval">${r[k]===null?'—':r[k]}</div></div>`).join('')}</div>`;
+}
+function renderTable(rows,cid){
+  const el=document.getElementById(cid);
+  if(!rows?.length){el.innerHTML=emSt();return;}
+  const cols=Object.keys(rows[0]);const fid='fi_'+cid;
+  el.innerHTML=`<div class="twrap"><div class="tfilt"><input id="${fid}" placeholder="Filter rows…" oninput="fltbl(this,'tb_${cid}')"></div><div class="tscroll"><table id="tb_${cid}"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>{const v=r[c];if(URLC.has(c)&&v&&String(v).startsWith('http'))return`<td><a class="pl" href="${v}" target="_blank" rel="noopener">↗ Open</a></td>`;const sv=v===null||v===undefined?'—':String(v);return`<td title="${sv.replace(/"/g,"'")}">${chp(c,sv)||sv}</td>`;}).join('')}</tr>`).join('')}</tbody></table></div><div class="tfoot">${rows.length} row${rows.length!==1?'s':''}</div></div>`;
+}
+function chp(col,val){
+  const lv=val.toLowerCase(),lc=col.toLowerCase();
+  if(['status','healthstatus','onboardingstatus','state','provisioningstate','backupstatus'].includes(lc)){
+    if(['active','healthy','onboarded','enabled','running','succeeded','success','ok','compliant','protected'].some(x=>lv.includes(x)))return`<span class="chip cg">${val}</span>`;
+    if(['failure','failed','degraded','inactive','unhealthy','error','expired','not protected'].some(x=>lv.includes(x)))return`<span class="chip cr">${val}</span>`;
+    if(['stale','warning','pending','partial','can be','critical (<','expiring'].some(x=>lv.includes(x)))return`<span class="chip cy">${val}</span>`;
+  }
+  if(['severity','alertseverity','risklevel'].includes(lc)){
+    if(['critical','high'].some(x=>lv.includes(x)))return`<span class="chip cr">${val}</span>`;
+    if(['medium'].some(x=>lv.includes(x)))return`<span class="chip cy">${val}</span>`;
+    if(['low','informational'].some(x=>lv.includes(x)))return`<span class="chip cb">${val}</span>`;
+  }
+  if(val==='🟢')return`<span class="chip cg">${val}</span>`;
+  if(val==='🔴')return`<span class="chip cr">${val}</span>`;
+  if(val==='🟡')return`<span class="chip cy">${val}</span>`;
+  return null;
+}
+function fltbl(inp,tid){const q=inp.value.toLowerCase();document.getElementById(tid)?.querySelectorAll('tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none');}
+function emSt(){return`<div class="sbox"><div class="sico">◈</div>No data returned.</div>`;}
+function ldSt(src){return`<div class="lbar"></div><div class="sbox sk">Querying ${src}…</div>`;}
+function erSt(m){return`<div class="sbox" style="color:var(--red)"><div class="sico">⚠</div>${m}</div>`;}
+
+// ── PANEL ENGINE ──────────────────────────────────────────────
+const PC={};let aDash='d5';
+async function execP(def,cid,force){
+  if(!acct)return;
+  if(!force&&PC[cid]){renderRes(PC[cid],cid,def.viz);return;}
+  dChart(cid);
+  document.getElementById(cid).innerHTML=ldSt(def.type==='arg'?'Azure Resource Graph':'Log Analytics');
+  try{
+    const rows=def.type==='arg'?await runARG(def.query):await runLA(def.query);
+    PC[cid]=rows;renderRes(rows,cid,def.viz);
+  }catch(e){document.getElementById(cid).innerHTML=erSt(e.message);}
+}
+function refreshAct(){
+  const ap=document.querySelector(`#ds-${aDash} .qpan.act`);
+  if(!ap)return;
+  const cid=ap.dataset.cid,idx=ap.dataset.idx;
+  if(!cid)return;
+  delete PC[cid];
+  execP(PANELS[aDash][+idx],cid,true);
+}
+function onTRChange(){Object.keys(PC).forEach(k=>delete PC[k]);refreshAct();loadKPIs(aDash);}
+
+// ── NAV ───────────────────────────────────────────────────────
+function switchD(id,el){
+  if(el.classList.contains('dis'))return;
+  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('act'));
+  el.classList.add('act');
+  document.querySelectorAll('.dsect').forEach(s=>s.classList.remove('act'));
+  document.getElementById('ds-'+id).classList.add('act');
+  aDash=id;
+  const first=document.querySelector(`#st-${id} .stab`);
+  if(first&&!document.querySelector(`#st-${id} .stab.act`))first.click();
+  if(!document.getElementById(`kpi-${id}`).children.length)loadKPIs(id);
+}
+function buildDash(id,panels){
+  const stabs=document.getElementById('st-'+id);
+  const cont=document.getElementById('pn-'+id);
+  panels.forEach((p,i)=>{
+    const cid=`${id}-${i}`;
+    const btn=document.createElement('span');
+    btn.className='stab'+(i===0?' act':'');
+    btn.textContent=p.label;
+    btn.onclick=()=>{
+      stabs.querySelectorAll('.stab').forEach(b=>b.classList.remove('act'));
+      btn.classList.add('act');
+      cont.querySelectorAll('.qpan').forEach(x=>x.classList.remove('act'));
+      document.getElementById('qp-'+cid).classList.add('act');
+      if(p.type!=='static')execP(p,cid,false);
+    };
+    stabs.appendChild(btn);
+    const div=document.createElement('div');
+    div.className='qpan'+(i===0?' act':'');
+    div.id='qp-'+cid;div.dataset.cid=cid;div.dataset.idx=i;
+    if(p.type==='static'){
+      div.innerHTML=`<div class="phdr"><div class="ptitle">${p.label}</div><div class="phr"><span class="qbadge qb-st">Reference</span></div></div><div class="scont">${p.html}</div>`;
+    }else{
+      div.innerHTML=`<div class="phdr"><div class="ptitle">${p.label}</div><div class="phr"><span class="qbadge ${p.type==='arg'?'qb-arg':'qb-la'}">${p.type==='arg'?'Resource Graph':'Log Analytics'}</span><button class="runbtn" onclick="(()=>{delete PC['${cid}'];execP(PANELS['${id}'][${i}],'${cid}',true);})()">↺ Run</button></div></div><div id="${cid}"><div class="sbox"><div class="sico">◈</div>${acct?'Click ↺ Run or select this tab to load.':'Sign in to load data.'}</div></div>`;
+    }
+    cont.appendChild(div);
+  });
+  if(acct)execP(panels[0],`${id}-0`,false);
+}
+
+// ── KPI STRIPS ────────────────────────────────────────────────
+const KDEFS={
+  d5:[
+    {l:'High/Critical Controls',c:'kc-rd',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`},k:'Count'},
+    {l:'Attack Paths',c:'kc-or',q:{t:'arg',q:`securityresources|where type=='microsoft.security/attackpaths'|summarize Count=count()`},k:'Count'},
+    {l:'Unprotected VMs',c:'kc-yw',q:{t:'arg',q:`Resources|where type=='microsoft.compute/virtualmachines'|extend VMId=tolower(id)|join kind=leftouter(Resources|where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'|where properties.workloadType=='VM'|extend SourceVMId=tolower(tostring(properties.sourceResourceId))|extend BackupStatus=tostring(properties.currentProtectionState)|project SourceVMId,BackupStatus)on $left.VMId==$right.SourceVMId|where isempty(BackupStatus)|summarize Count=count()`},k:'Count'},
+    {l:'Sign-in Failures (7d)',c:'kc-rd',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`},k:'Count'},
+    {l:'Active Incidents',c:'kc-cy',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Status=='Active'|summarize Count=count()`},k:'Count'},
+    {l:'Orphaned Resources',c:'kc-bl',q:{t:'arg',q:`Resources|where(type=='microsoft.compute/disks'and properties.diskState=='Unattached')or(type=='microsoft.network/publicipaddresses'and isnull(properties.ipConfiguration))or(type=='microsoft.network/networksecuritygroups'and array_length(properties.subnets)==0 and array_length(properties.networkInterfaces)==0)|summarize Count=count()`},k:'Count'},
+  ],
+  d7:[
+    {l:'Incidents (30d)',c:'kc-cy',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|summarize Count=count()`},k:'Count'},
+    {l:'Active Incidents',c:'kc-rd',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Status=='Active'|summarize Count=count()`},k:'Count'},
+    {l:'Degraded Rules',c:'kc-yw',q:{t:'la',q:`SentinelHealth|where TimeGenerated>=ago(7d)|where SentinelResourceType=='Analytics Rule'|where Status=='Failure'|summarize Count=dcount(SentinelResourceName)`},k:'Count'},
+    {l:'Tables Ingesting',c:'kc-gn',q:{t:'la',q:`Usage|where TimeGenerated>=ago(1d)|summarize Count=dcount(DataType)`},k:'Count'},
+    {l:'Ingestion Today (GB)',c:'kc-bl',q:{t:'la',q:`Usage|where TimeGenerated>=ago(1d)|summarize GB=round(sum(Quantity)/1024,1)`},k:'GB'},
+    {l:'Alerts (7d)',c:'kc-or',q:{t:'la',q:`SecurityAlert|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
+  ],
+  d6:[
+    {l:'Total Devices',c:'kc-cy',q:{t:'la',q:`DeviceInfo|where Timestamp>=ago(7d)|summarize arg_max(Timestamp,*)by DeviceId|summarize Count=count()`},k:'Count'},
+    {l:'Onboarded',c:'kc-gn',q:{t:'la',q:`DeviceInfo|where Timestamp>=ago(7d)|summarize arg_max(Timestamp,*)by DeviceId|where OnboardingStatus=='Onboarded'|summarize Count=count()`},k:'Count'},
+    {l:'Not Onboarded',c:'kc-rd',q:{t:'la',q:`DeviceInfo|where Timestamp>=ago(7d)|summarize arg_max(Timestamp,*)by DeviceId|where OnboardingStatus!='Onboarded'|summarize Count=count()`},k:'Count'},
+    {l:'Critical Vulns',c:'kc-rd',q:{t:'la',q:`DeviceTvmSoftwareVulnerabilities|where TimeGenerated>=ago(7d)|where VulnerabilitySeverityLevel=='Critical'|summarize Count=count()`},k:'Count'},
+    {l:'Open Incidents',c:'kc-yw',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Status=='Active'|summarize Count=count()`},k:'Count'},
+    {l:'Defender Alerts (7d)',c:'kc-or',q:{t:'la',q:`SecurityAlert|where TimeGenerated>=ago(7d)|where ProductName has 'Defender'|summarize Count=count()`},k:'Count'},
+  ],
+};
+async function loadKPIs(id){
+  const strip=document.getElementById('kpi-'+id);
+  const defs=KDEFS[id];
+  strip.innerHTML=defs.map((d,i)=>`<div class="kcard ${d.c}"><div class="klbl">${d.l}</div><div class="kval ldg" id="kv-${id}-${i}">…</div></div>`).join('');
+  defs.forEach(async(d,i)=>{
+    try{
+      const rows=d.q.t==='arg'?await runARG(d.q.q):await runLA(d.q.q);
+      const v=rows?.[0]?.[d.k];
+      const el=document.getElementById(`kv-${id}-${i}`);
+      el.textContent=v!==undefined?Number(v).toLocaleString():'—';
+      el.classList.remove('ldg');
+    }catch{document.getElementById(`kv-${id}-${i}`).textContent='—';}
+  });
+}
+
+// ── PANEL DEFINITIONS ─────────────────────────────────────────
+const PANELS={
+d5:[
+  {label:'Identity & PIM',type:'arg',query:`Resources
+| where type == 'microsoft.authorization/roleassignments'
+| extend PrincipalType = tostring(properties.principalType)
+| extend RoleId = tolower(tostring(properties.roleDefinitionId))
+| extend Scope = tostring(properties.scope)
+| extend ScopeLevel = case(Scope has '/resourceGroups/','ResourceGroup',Scope has '/subscriptions/','Subscription',Scope has '/providers/Microsoft.Management/','ManagementGroup','Unknown')
+| extend RoleName = case(RoleId has '8e3af657-a8ff-443c-a75c-2fe8c4bcb635','Owner',RoleId has 'b24988ac-6180-42a0-ab88-20f7382dd24c','Contributor',RoleId has '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9','User Access Administrator',RoleId has 'fb1c8493-542b-48eb-b624-b4c8fea62acd','Security Admin',RoleId has '62e90394-69f5-4237-9190-012177145e10','Global Administrator',RoleId has 'e8611ab8-c189-46e8-94e1-60213ab1f814','Privileged Role Administrator','Other')
+| where RoleName != 'Other'
+| extend IAMLink = strcat('https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade/subscriptionId/',subscriptionId)
+| project RoleName, PrincipalType, ScopeLevel, Scope, IAMLink, SubscriptionId=subscriptionId
+| order by RoleName asc, PrincipalType asc | take 1000`},
+  {label:'Managed Identities',type:'arg',query:`Resources
+| where type == 'microsoft.managedidentity/userassignedidentities'
+| extend ClientId = tostring(properties.clientId)
+| extend PrincipalId = tostring(properties.principalId)
+| extend PortalLink = strcat('https://portal.azure.com/#resource',id)
+| project IdentityName=name, ClientId, PrincipalId, PortalLink, ResourceGroup=resourceGroup, Location=location, SubscriptionId=subscriptionId
+| order by SubscriptionId asc | take 1000`},
+  {label:'KV Secrets / Certs',type:'arg',query:`Resources
+| where type == 'microsoft.keyvault/vaults/secrets' or type == 'microsoft.keyvault/vaults/certificates'
+| extend ItemType = iff(type has 'secrets','Secret','Certificate')
+| extend Enabled = tostring(properties.attributes.enabled)
+| extend ExpiryDate = todatetime(properties.attributes.exp)
+| extend DaysUntilExpiry = datetime_diff('day',ExpiryDate,now())
+| extend Status = case(isnull(ExpiryDate),'No Expiry Set',DaysUntilExpiry<0,'Expired',DaysUntilExpiry<30,'Critical (<30d)',DaysUntilExpiry<90,'Warning (<90d)','OK')
+| where Status != 'OK'
+| extend VaultId = tostring(split(id,strcat('/',ItemType,'s/'))[0])
+| extend VaultName = tostring(split(VaultId,'/')[-1])
+| extend PortalLink = strcat('https://portal.azure.com/#resource',VaultId,iff(ItemType=='Secret','/secrets','/certificates'))
+| project ItemName=name, ItemType, VaultName, Enabled, ExpiryDate, DaysUntilExpiry, Status, PortalLink, ResourceGroup=resourceGroup, SubscriptionId=subscriptionId
+| order by DaysUntilExpiry asc | take 1000`},
+  {label:'Vulnerability Management',type:'arg',query:`securityresources
+| where type == 'microsoft.security/assessments'
+| where properties.status.code == 'Unhealthy'
+| extend DisplayName = tostring(properties.displayName)
+| extend Severity = tostring(properties.metadata.severity)
+| extend Category = tostring(properties.metadata.categories[0])
+| extend ResourceName = tostring(split(tostring(properties.resourceDetails.id),'/')[-1])
+| extend RemediationDesc = tostring(properties.metadata.remediationDescription)
+| extend AssessmentKey = tostring(split(id,'/assessments/')[1])
+| extend DefenderLink = strcat('https://portal.azure.com/#blade/Microsoft_Azure_Security/RecommendationsBlade/assessmentKey/',AssessmentKey)
+| project DisplayName, Severity, Category, ResourceName, RemediationDesc, DefenderLink, ResourceGroup=resourceGroup, SubscriptionId=subscriptionId
+| order by Severity asc, DisplayName asc | take 1000`},
+  {label:'Attack Paths',type:'arg',query:`securityresources
+| where type == 'microsoft.security/attackpaths'
+| extend AttackPathName = tostring(properties.displayName)
+| extend RiskLevel = tostring(properties.riskLevel)
+| extend EntryPoints = array_length(properties.entryPointsIds)
+| extend TargetName = tostring(split(tostring(properties.target.resourceId),'/')[-1])
+| extend AttackPathType = tostring(properties.attackPathType)
+| project AttackPathName, RiskLevel, EntryPoints, TargetName, AttackPathType, SubscriptionId=subscriptionId
+| order by RiskLevel asc | take 1000`},
+  {label:'AKS Security',type:'arg',query:`securityresources
+| where type == 'microsoft.security/assessments'
+| where properties.status.code == 'Unhealthy'
+| where properties.resourceDetails.resourceType has 'containerservice'
+    or (properties.metadata.categories has 'Compute' and properties.displayName has_any ('AKS','Kubernetes','container'))
+| extend DisplayName = tostring(properties.displayName)
+| extend Severity = tostring(properties.metadata.severity)
+| extend ResourceName = tostring(split(tostring(properties.resourceDetails.id),'/')[-1])
+| extend RemediationDesc = tostring(properties.metadata.remediationDescription)
+| extend AssessmentKey = tostring(split(id,'/assessments/')[1])
+| extend DefenderLink = strcat('https://portal.azure.com/#blade/Microsoft_Azure_Security/RecommendationsBlade/assessmentKey/',AssessmentKey)
+| project DisplayName, Severity, ResourceName, RemediationDesc, DefenderLink, ResourceGroup=resourceGroup, SubscriptionId=subscriptionId
+| order by Severity asc | take 1000`},
+  {label:'Backup Coverage',type:'arg',query:`Resources
+| where type == 'microsoft.compute/virtualmachines'
+| extend VMId = tolower(id)
+| project VMId, VMName=name, ResourceGroup=resourceGroup, Location=location, SubscriptionId=subscriptionId
+| join kind=leftouter (
+    Resources | where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'
+    | where properties.workloadType=='VM'
+    | extend SourceVMId=tolower(tostring(properties.sourceResourceId))
+    | extend BackupStatus=tostring(properties.currentProtectionState)
+    | project SourceVMId, BackupStatus
+) on $left.VMId==$right.SourceVMId
+| where isempty(BackupStatus) or BackupStatus=='ProtectionStopped'
+| project VMName, BackupStatus=coalesce(BackupStatus,'Not Protected'), ResourceGroup, Location, SubscriptionId
+| order by VMName asc | take 1000`},
+  {label:'Orphaned Resources',type:'arg',query:`Resources
+| where (type=='microsoft.compute/disks' and properties.diskState=='Unattached')
+    or (type=='microsoft.network/publicipaddresses' and isnull(properties.ipConfiguration))
+    or (type=='microsoft.network/networksecuritygroups' and array_length(properties.subnets)==0 and array_length(properties.networkInterfaces)==0)
+    or (type=='microsoft.network/networkinterfaces' and isnull(properties.virtualMachine))
+| extend OrphanType=case(type=='microsoft.compute/disks','Unattached Disk',type=='microsoft.network/publicipaddresses','Unassociated Public IP',type=='microsoft.network/networksecuritygroups','Empty NSG',type=='microsoft.network/networkinterfaces','Detached NIC',type)
+| extend SizeGB=toint(properties.diskSizeGB)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project ResourceName=name, OrphanType, SizeGB, PortalLink, ResourceGroup=resourceGroup, Location=location, SubscriptionId=subscriptionId
+| order by OrphanType asc | take 1000`},
+  {label:'Compliance',type:'arg',query:`policyresources
+| where type == 'microsoft.policyinsights/policystates'
+| extend ComplianceState=tostring(properties.complianceState)
+| extend PolicyName=tostring(properties.policyDefinitionName)
+| extend ResourceType=tostring(properties.resourceType)
+| summarize Total=count(), Compliant=countif(ComplianceState=='Compliant'), NonCompliant=countif(ComplianceState=='NonCompliant') by PolicyName, ResourceType
+| extend CompliancePct=round(todouble(Compliant)/Total*100,1)
+| order by CompliancePct asc | take 1000`},
+  {label:'Shadow Subscriptions',type:'arg',query:`ResourceContainers
+| where type == 'microsoft.resources/subscriptions'
+| extend MgChain=array_length(properties.managementGroupAncestorsChain)
+| where MgChain==0 or isnull(MgChain)
+| project SubscriptionName=name, SubscriptionId=subscriptionId, State=tostring(properties.state)
+| order by SubscriptionName asc`},
+  {label:'Sign-in Anomalies',type:'la',query:`SigninLogs
+| where TimeGenerated {TimeRange}
+| where ResultType != '0'
+| extend FailureReason=tostring(Status.failureReason)
+| extend RiskLevel=tostring(RiskLevelDuringSignIn)
+| summarize FailureCount=count() by UserPrincipalName, AppDisplayName, FailureReason, RiskLevel, IPAddress
+| where FailureCount > 10
+| order by FailureCount desc | take 500`},
+  {label:'Incident MTTD/MTTR',type:'la',query:`SecurityIncident
+| where TimeGenerated >= ago(30d)
+| extend MTTD=datetime_diff('minute',FirstActivityTime,CreatedTime)
+| extend MTTR=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
+| summarize TotalIncidents=count(), AvgMTTD_min=round(avg(MTTD),0), AvgMTTR_min=round(avg(MTTR),0), Closed=countif(Status=='Closed'), Open=countif(Status!='Closed') by Severity
+| order by Severity asc`},
+  {label:'Quick Wins',type:'arg',query:`securityresources
+| where type=='microsoft.security/assessments'
+| where properties.status.code=='Unhealthy'
+| where properties.metadata.severity in ('High','Critical')
+| extend DisplayName=tostring(properties.displayName)
+| extend RemediationDesc=tostring(properties.metadata.remediationDescription)
+| extend Category=tostring(properties.metadata.categories[0])
+| extend AssessmentKey=tostring(split(id,'/assessments/')[1])
+| extend DefenderLink=strcat('https://portal.azure.com/#blade/Microsoft_Azure_Security/RecommendationsBlade/assessmentKey/',AssessmentKey)
+| where DisplayName has_any ('HTTPS','TLS','soft delete','purge protection','public access','diagnostic','encryption','firewall','managed identity','audit','monitoring','secure transfer','MFA','defender')
+| summarize AffectedResources=count(), RemediationDesc=take_any(RemediationDesc), DefenderLink=take_any(DefenderLink) by DisplayName, Severity=tostring(properties.metadata.severity), Category
+| extend Effort=case(DisplayName has_any ('HTTPS','TLS','secure transfer'),'< 2 min',DisplayName has_any ('soft delete','purge protection'),'< 2 min',DisplayName has_any ('public access','firewall'),'< 5 min',DisplayName has_any ('diagnostic','monitoring','audit'),'< 5 min','< 15 min')
+| order by AffectedResources desc, Severity asc | take 200`},
+  {label:'Remediation Guide',type:'static',html:`
+    <h3>Storage Accounts</h3>
+    <pre><code>az storage account update --name &lt;n&gt; --resource-group &lt;rg&gt; --https-only true
+az storage account update --name &lt;n&gt; --resource-group &lt;rg&gt; --min-tls-version TLS1_2
+az storage account update --name &lt;n&gt; --resource-group &lt;rg&gt; --allow-blob-public-access false</code></pre>
+    <h3>Key Vaults</h3>
+    <pre><code>az keyvault update --name &lt;n&gt; --resource-group &lt;rg&gt; --enable-soft-delete true
+az keyvault update --name &lt;n&gt; --resource-group &lt;rg&gt; --enable-purge-protection true</code></pre>
+    <h3>App Services</h3>
+    <pre><code>az webapp update --name &lt;n&gt; --resource-group &lt;rg&gt; --set httpsOnly=true
+az webapp config set --name &lt;n&gt; --resource-group &lt;rg&gt; --min-tls-version 1.2
+az webapp config set --name &lt;n&gt; --resource-group &lt;rg&gt; --ftps-state Disabled</code></pre>
+    <h3>Virtual Machines — Disk Encryption</h3>
+    <pre><code>az vm encryption enable --resource-group &lt;rg&gt; --name &lt;vm&gt; --disk-encryption-keyvault &lt;kv&gt;</code></pre>
+    <h3>SQL</h3>
+    <pre><code>az sql server audit-policy update --resource-group &lt;rg&gt; --name &lt;srv&gt; --state Enabled --storage-account &lt;sa&gt;
+az sql server advanced-threat-protection-setting update --resource-group &lt;rg&gt; --server &lt;srv&gt; --state Enabled</code></pre>
+    <h3>NSG — Remove Permissive Inbound Rules</h3>
+    <pre><code>az network nsg rule list -g &lt;rg&gt; --nsg-name &lt;nsg&gt; \
+  --query "[?access=='Allow'&&direction=='Inbound'&&(sourceAddressPrefix=='*'||sourceAddressPrefix=='Internet')]"
+az network nsg rule delete -g &lt;rg&gt; --nsg-name &lt;nsg&gt; --name &lt;rule&gt;</code></pre>
+    <h3>RBAC — Remove Excessive Permissions</h3>
+    <pre><code>az role assignment list --subscription &lt;sub&gt; --role Owner \
+  --query "[].{Principal:principalName,Type:principalType}"
+az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscription &lt;sub&gt;</code></pre>
+    <div class="note">Use the <strong>Quick Wins</strong> tab to identify high/critical controls fixable with a single config change. Sort by AffectedResources for highest blast radius per fix.</div>`},
+],
+d7:[
+  {label:'Workspace Inventory',type:'arg',query:`Resources
+| where type=='microsoft.operationalinsights/workspaces'
+| extend SKU=tostring(properties.sku.name)
+| extend RetentionDays=toint(properties.retentionInDays)
+| extend DailyCapGB=todouble(properties.workspaceCapping.dailyQuotaGb)
+| extend ProvisioningState=tostring(properties.provisioningState)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project WorkspaceName=name, SKU, RetentionDays, DailyCapGB, ProvisioningState, PortalLink, ResourceGroup=resourceGroup, Location=location, SubscriptionId=subscriptionId
+| order by SubscriptionId asc | take 200`},
+  {label:'Sentinel Health',type:'la',query:`SentinelHealth
+| where TimeGenerated {TimeRange}
+| where SentinelResourceType=='Analytics Rule'
+| summarize TotalRuns=count(), Failures=countif(Status=='Failure'), Successes=countif(Status=='Success'), LastRun=max(TimeGenerated) by SentinelResourceName, SentinelResourceKind
+| extend HealthStatus=iff(Failures>0,'Degraded','Healthy')
+| order by HealthStatus desc, Failures desc, SentinelResourceName asc | take 500`},
+  {label:'Ingestion by Table',type:'la',query:`Usage
+| where TimeGenerated {TimeRange}
+| summarize IngestedGB=round(sum(Quantity)/1024,3), RecordCount=sum(Quantity) by DataType
+| order by IngestedGB desc | take 100`},
+  {label:'Ingestion Trend',type:'la',viz:'timechart',query:`Usage
+| where TimeGenerated>=ago(30d)
+| summarize IngestedGB=round(sum(Quantity)/1024,2) by bin(TimeGenerated,1d)
+| order by TimeGenerated asc`},
+  {label:'Ingestion Anomalies',type:'la',query:`Usage
+| where TimeGenerated>=ago(30d)
+| summarize DailyGB=sum(Quantity)/1024 by bin(TimeGenerated,1d), DataType
+| summarize AvgGB=avg(DailyGB), StdDevGB=stdev(DailyGB), LastDayGB=take_any(DailyGB) by DataType
+| extend ZScore=round((LastDayGB-AvgGB)/StdDevGB,2)
+| where abs(ZScore)>2
+| project DataType, LastDayGB=round(LastDayGB,3), AvgGB=round(AvgGB,3), ZScore
+| order by abs(ZScore) desc | take 50`},
+  {label:'Data Connectors',type:'la',query:`datatable(DataType:string,ConnectorName:string)[
+"AADManagedIdentitySignInLogs","Microsoft Entra ID","AADServicePrincipalSignInLogs","Microsoft Entra ID",
+"ASimDnsActivityLogs","DNS (AMA)","AZFWApplicationRule","Azure Firewall","AZFWNetworkRule","Azure Firewall",
+"AlertInfo","Microsoft Defender for Endpoint","AuditLogs","Microsoft Entra ID","AzureActivity","Azure Activity",
+"AzureDiagnostics","Azure Diagnostics","Cisco_Umbrella_dns_CL","Cisco Umbrella","Cisco_Umbrella_proxy_CL","Cisco Umbrella",
+"CloudAppEvents","Microsoft Defender for Cloud Apps","CommonSecurityLog","CEF via AMA",
+"DeviceEvents","Microsoft Defender for Endpoint","DeviceFileEvents","Microsoft Defender for Endpoint",
+"DeviceInfo","Microsoft Defender for Endpoint","DeviceLogonEvents","Microsoft Defender for Endpoint",
+"DeviceNetworkEvents","Microsoft Defender for Endpoint","DeviceProcessEvents","Microsoft Defender for Endpoint",
+"Dynamics365Activity","Dynamics 365","EmailEvents","Microsoft 365 Defender","Event","Windows Event Log (AMA)",
+"GitHubAuditLogsV2_CL","GitHub Enterprise","Heartbeat","Azure Monitor Agent",
+"IdentityDirectoryEvents","Microsoft Defender for Identity","IdentityLogonEvents","Microsoft Defender for Identity",
+"IdentityQueryEvents","Microsoft Defender for Identity","OfficeActivity","Microsoft 365",
+"ProofPointTAPMessagesBlocked_CL","ProofPoint TAP","ProofPointTAPMessagesDelivered_CL","ProofPoint TAP",
+"SecurityAlert","Microsoft Sentinel","SecurityEvent","Security Events via AMA","SecurityIncident","Microsoft Sentinel",
+"SentinelHealth","Microsoft Sentinel","SigninLogs","Microsoft Entra ID",
+"ArtifactoryRequestLog_CL","JFrog Artifactory","ArtifactoryAccessAuditLog_CL","JFrog Artifactory",
+"OCI_LogsV2_CL","Oracle Cloud Infrastructure","Watchlist","Microsoft Sentinel",
+]
+| join kind=rightouter(
+    Usage|where TimeGenerated>=ago(7d)
+    |summarize LastIngestion=max(TimeGenerated),TotalGB=round(sum(Quantity)/1024,3) by DataType
+)on DataType
+| extend ConnectorName=coalesce(ConnectorName,strcat('Unknown - ',DataType))
+| extend HoursSince=datetime_diff('hour',now(),LastIngestion)
+| extend Status=case(HoursSince<=24,'Active',HoursSince<=72,'Stale (1-3d)','Inactive (>3d)')
+| project ConnectorName, DataType, Status, TotalGB, LastIngestion
+| order by Status asc, ConnectorName asc, TotalGB desc`},
+  {label:'Analytic Rules',type:'la',query:`SecurityAlert
+| where TimeGenerated {TimeRange}
+| summarize AlertCount=count(), LastFired=max(TimeGenerated), AvgPerDay=round(count()/7.0,1) by AlertName, ProductName, AlertSeverity
+| order by AlertCount desc | take 200`},
+  {label:'Incident Trend',type:'la',viz:'timechart',query:`SecurityIncident
+| where TimeGenerated>=ago(30d)
+| summarize IncidentCount=count() by bin(TimeGenerated,1d), Severity
+| order by TimeGenerated asc`},
+  {label:'Incident MTTD/MTTR',type:'la',query:`SecurityIncident
+| where TimeGenerated>=ago(30d)
+| extend MTTD_min=datetime_diff('minute',FirstActivityTime,CreatedTime)
+| extend MTTR_min=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
+| summarize TotalIncidents=count(), AvgMTTD_min=round(avg(MTTD_min),0), AvgMTTR_min=round(avg(MTTR_min),0), Closed=countif(Status=='Closed'), Active=countif(Status=='Active') by Severity
+| order by Severity asc`},
+  {label:'Alert Volume',type:'la',viz:'timechart',query:`SecurityAlert
+| where TimeGenerated>=ago(30d)
+| summarize AlertCount=count() by bin(TimeGenerated,1d), ProductName
+| order by TimeGenerated asc`},
+],
+d6:[
+  {label:'Coverage Summary',type:'la',viz:'tiles',query:`DeviceInfo
+| where Timestamp>=ago(7d)
+| summarize arg_max(Timestamp,*)by DeviceId
+| summarize TotalDevices=count(), Onboarded=countif(OnboardingStatus=='Onboarded'), CanBeOnboarded=countif(OnboardingStatus=='Can be onboarded'), InsufficientInfo=countif(OnboardingStatus=='Insufficient info'), Windows=countif(OSPlatform startswith 'Windows'), Linux=countif(OSPlatform startswith 'Linux'), macOS=countif(OSPlatform startswith 'macOS')
+| extend CoveragePct=round(todouble(Onboarded)/TotalDevices*100,1)
+| project TotalDevices, Onboarded, CoveragePct, CanBeOnboarded, InsufficientInfo, Windows, Linux, macOS`},
+  {label:'High Exposure Devices',type:'la',query:`DeviceInfo
+| where TimeGenerated {TimeRange}
+| summarize arg_max(TimeGenerated,*)by DeviceName
+| where OnboardingStatus=='Onboarded'
+| join kind=inner(
+    DeviceTvmSoftwareVulnerabilities|where TimeGenerated {TimeRange}
+    |summarize CriticalVulns=countif(VulnerabilitySeverityLevel=='Critical'),HighVulns=countif(VulnerabilitySeverityLevel=='High') by DeviceName
+)on DeviceName
+| extend MDELink=strcat('https://security.microsoft.com/machines/',DeviceId)
+| project DeviceName, OSPlatform, OSVersion, CriticalVulns, HighVulns, LastSeen=TimeGenerated, MDELink
+| order by CriticalVulns desc, HighVulns desc | take 500`},
+  {label:'Not Onboarded',type:'la',query:`DeviceInfo
+| where Timestamp>=ago(7d)
+| summarize arg_max(Timestamp,*)by DeviceId
+| where OnboardingStatus!='Onboarded'
+| extend MDELink=strcat('https://security.microsoft.com/machines/',DeviceId)
+| project DeviceName, OSPlatform, OSVersion, OnboardingStatus, JoinType, LastSeen=Timestamp, MDELink
+| order by OnboardingStatus asc, OSPlatform asc | take 1000`},
+  {label:'Excluded Devices',type:'la',query:`DeviceInfo
+| where Timestamp>=ago(7d)
+| summarize arg_max(Timestamp,*)by DeviceId
+| where OnboardingStatus=='Insufficient info'
+| extend MDELink=strcat('https://security.microsoft.com/machines/',DeviceId)
+| project DeviceName, OSPlatform, OSVersion, OnboardingStatus, JoinType, LastSeen=Timestamp, MDELink
+| order by OSPlatform asc, DeviceName asc | take 1000`},
+  {label:'Full Device Inventory',type:'la',query:`DeviceInfo
+| where Timestamp>=ago(7d)
+| summarize arg_max(Timestamp,*)by DeviceId
+| extend MDELink=strcat('https://security.microsoft.com/machines/',DeviceId)
+| project DeviceName, OSPlatform, OSVersion, OnboardingStatus, JoinType, PublicIP, DeviceCategory, DeviceSubtype, LastSeen=Timestamp, MDELink
+| order by OnboardingStatus asc, OSPlatform asc, DeviceName asc | take 2000`},
+  {label:'Incident Summary',type:'la',query:`SecurityIncident
+| where TimeGenerated>=ago(30d)
+| summarize Total=count(), High=countif(Severity=='High'), Medium=countif(Severity=='Medium'), Low=countif(Severity=='Low'), Closed=countif(Status=='Closed'), Active=countif(Status=='Active') by bin(TimeGenerated,1d)
+| order by TimeGenerated desc | take 90`},
+  {label:'Incident Detail',type:'la',query:`SecurityIncident
+| where TimeGenerated>=ago(30d)
+| extend MTTR_min=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
+| project IncidentName, IncidentNumber, Severity, Status, Title, CreatedTime, ClosedTime, MTTR_min, Classification, ClassificationReason, ProviderName, IncidentUrl
+| order by CreatedTime desc | take 500`},
+  {label:'Rule Health',type:'la',query:`SecurityAlert
+| where TimeGenerated {TimeRange}
+| summarize AlertCount=count(), LastFired=max(TimeGenerated) by AlertName, ProductName
+| order by AlertCount desc | take 200`},
+  {label:'MDE Ingestion',type:'la',query:`Usage
+| where TimeGenerated {TimeRange}
+| where DataType in ('DeviceInfo','DeviceNetworkEvents','DeviceProcessEvents','DeviceFileEvents','DeviceRegistryEvents','DeviceLogonEvents','DeviceAlertEvents','DeviceTvmSoftwareVulnerabilities')
+| summarize IngestedGB=round(sum(Quantity)/1024,3) by DataType
+| order by IngestedGB desc`},
+  {label:'Alert Volume',type:'la',viz:'timechart',query:`SecurityAlert
+| where TimeGenerated>=ago(30d)
+| where ProductName has 'Defender'
+| summarize AlertCount=count() by bin(TimeGenerated,1d), AlertSeverity
+| order by TimeGenerated asc`},
+],
+};
+
+// ── AUTH & INIT ───────────────────────────────────────────────
+function onAuth(){
+  document.getElementById('loginBtn').style.display='none';
+  document.getElementById('lscr').style.display='none';
+  document.getElementById('ubadge').style.display='flex';
+  document.getElementById('uemail').textContent=acct.username;
+  document.getElementById('content').style.display='block';
+  document.getElementById('mainTabs').style.display='block';
+  document.getElementById('pbanner').style.display='flex';
+  buildDash('d5',PANELS.d5);
+  buildDash('d7',PANELS.d7);
+  buildDash('d6',PANELS.d6);
+  loadKPIs('d5');
+}
+window.addEventListener('DOMContentLoaded',async()=>{
+  if(NCFG)document.getElementById('cfgwarn').style.display='block';
+  initMsal();
+  if(!mApp){document.getElementById('lscr').style.display='flex';return;}
+  const accounts=mApp.getAllAccounts();
+  if(accounts.length){acct=accounts[0];onAuth();}
+  else{document.getElementById('lscr').style.display='flex';}
+});
+</script>
+</body>
+</html>
