@@ -204,9 +204,9 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 </script>
 
 <div id="topbar">
-  <div class="logo">ABS<em> · </em>CYBERDEFENSE</div>
+  <div class="logo"><img src="./abs-logo-blue.jpg" alt="ABS" style="height:28px;filter:brightness(0) invert(1);vertical-align:middle;margin-right:8px;"><em>· </em>CYBERDEFENSE</div>
   <div class="vsep"></div>
-  <div class="tmeta"><b>law-security-prod</b> &nbsp;·&nbsp; rg-security-prod &nbsp;·&nbsp; Commercial Azure</div>
+  <div class="tmeta"><b>Tenant:</b> American Bureau of Shipping &nbsp;|&nbsp; <b>Designed and Built by:</b> Eddie Devine, SIEM Engineer - ABS CyberDefense</div>
   <div class="tright">
     <select id="trSel" onchange="onTRChange()">
       <option value="1d">Last 24h</option>
@@ -268,7 +268,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 
 <div id="lscr">
   <div class="lcard">
-    <div class="llogo">ABS</div>
+    <img src="./abs-logo-blue.jpg" alt="ABS" style="height:52px;filter:brightness(0) invert(1);margin-bottom:8px;">
     <div class="lsub">CyberDefense · Security Dashboard</div>
     <div class="ldesc">Live security data from Microsoft Sentinel, Defender for Endpoint, Azure Resource Graph, and Log Analytics. Sign in with your ABS Azure AD account to load live data.</div>
     <button class="lcta" onclick="signIn()">Sign In with Azure AD</button>
