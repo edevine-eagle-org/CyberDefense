@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ABS CyberDefense · Security Dashboard</title>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -250,6 +250,8 @@ function initMsal(){
 }
 async function signIn(){
   if(NCFG){alert('Fill in clientId and tenantId in CONFIG first.');return;}
+  if(!mApp)initMsal();
+  if(!mApp){alert('MSAL failed to initialize. Check that msal-browser.min.js loaded correctly.');return;}
   try{const r=await mApp.loginPopup({scopes:['openid','profile','email','https://management.azure.com/user_impersonation','https://api.loganalytics.io/Data.Read']});acct=r.account;onAuth();}
   catch(e){alert('Sign-in failed: '+e.message);}
 }
