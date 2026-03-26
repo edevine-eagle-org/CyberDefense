@@ -201,7 +201,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   </div>
 </div>
 
-<div id="cfgwarn">⚠ &nbsp;App Registration pending — authentication will be enabled once the Client ID is received.</div>
+<div id="cfgwarn">⚠ &nbsp;App Registration pending - authentication will be enabled once the Client ID is received.</div>
 
 <div id="pbanner">
   <span class="ppill">ABS IMS Security</span>
@@ -238,7 +238,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
     <div class="lsub">CyberDefense · Security Dashboard</div>
     <div class="ldesc">Live security data from Microsoft Sentinel, Defender for Endpoint, Azure Resource Graph, and Log Analytics. Sign in with your ABS Azure AD account to load live data.</div>
     <button class="lcta" onclick="signIn()">Sign In with Azure AD</button>
-    <div class="lnote">Requires: Log Analytics Reader · Security Reader · Reader on subscriptions<br>Data is fetched live on every open — nothing is cached here.</div>
+    <div class="lnote">Requires: Log Analytics Reader · Security Reader · Reader on subscriptions<br>Data is fetched live on every open - nothing is cached here.</div>
   </div>
 </div>
 
@@ -340,13 +340,13 @@ function renderTiles(rows,cid){
   const el=document.getElementById(cid);
   if(!rows?.length){el.innerHTML=emSt();return;}
   const r=rows[0];const ks=Object.keys(r);
-  el.innerHTML=`<div class="tgrid">${ks.map(k=>`<div class="mtile"><div class="mlbl">${k}</div><div class="mval">${r[k]===null?'—':r[k]}</div></div>`).join('')}</div>`;
+  el.innerHTML=`<div class="tgrid">${ks.map(k=>`<div class="mtile"><div class="mlbl">${k}</div><div class="mval">${r[k]===null?'-':r[k]}</div></div>`).join('')}</div>`;
 }
 function renderTable(rows,cid){
   const el=document.getElementById(cid);
   if(!rows?.length){el.innerHTML=emSt();return;}
   const cols=Object.keys(rows[0]);const fid='fi_'+cid;
-  el.innerHTML=`<div class="twrap"><div class="tfilt"><input id="${fid}" placeholder="Filter rows…" oninput="fltbl(this,'tb_${cid}')"></div><div class="tscroll"><table id="tb_${cid}"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>{const v=r[c];if(URLC.has(c)&&v&&String(v).startsWith('http'))return`<td><a class="pl" href="${v}" target="_blank" rel="noopener">↗ Open</a></td>`;const sv=v===null||v===undefined?'—':String(v);return`<td title="${sv.replace(/"/g,"'")}">${chp(c,sv)||sv}</td>`;}).join('')}</tr>`).join('')}</tbody></table></div><div class="tfoot">${rows.length} row${rows.length!==1?'s':''}</div></div>`;
+  el.innerHTML=`<div class="twrap"><div class="tfilt"><input id="${fid}" placeholder="Filter rows…" oninput="fltbl(this,'tb_${cid}')"></div><div class="tscroll"><table id="tb_${cid}"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>{const v=r[c];if(URLC.has(c)&&v&&String(v).startsWith('http'))return`<td><a class="pl" href="${v}" target="_blank" rel="noopener">↗ Open</a></td>`;const sv=v===null||v===undefined?'-':String(v);return`<td title="${sv.replace(/"/g,"'")}">${chp(c,sv)||sv}</td>`;}).join('')}</tr>`).join('')}</tbody></table></div><div class="tfoot">${rows.length} row${rows.length!==1?'s':''}</div></div>`;
 }
 function chp(col,val){
   const lv=val.toLowerCase(),lc=col.toLowerCase();
@@ -524,9 +524,9 @@ async function loadKPIs(id){
       const rows=d.q.t==='arg'?await runARG(d.q.q):await runLA(d.q.q);
       const v=rows?.[0]?.[d.k];
       const el=document.getElementById(`kv-${id}-${i}`);
-      el.textContent=v!==undefined?Number(v).toLocaleString():'—';
+      el.textContent=v!==undefined?Number(v).toLocaleString():'-';
       el.classList.remove('ldg');
-    }catch{document.getElementById(`kv-${id}-${i}`).textContent='—';}
+    }catch{document.getElementById(`kv-${id}-${i}`).textContent='-';}
   });
 }
 
@@ -675,16 +675,16 @@ az keyvault update --name &lt;n&gt; --resource-group &lt;rg&gt; --enable-purge-p
     <pre><code>az webapp update --name &lt;n&gt; --resource-group &lt;rg&gt; --set httpsOnly=true
 az webapp config set --name &lt;n&gt; --resource-group &lt;rg&gt; --min-tls-version 1.2
 az webapp config set --name &lt;n&gt; --resource-group &lt;rg&gt; --ftps-state Disabled</code></pre>
-    <h3>Virtual Machines — Disk Encryption</h3>
+    <h3>Virtual Machines - Disk Encryption</h3>
     <pre><code>az vm encryption enable --resource-group &lt;rg&gt; --name &lt;vm&gt; --disk-encryption-keyvault &lt;kv&gt;</code></pre>
     <h3>SQL</h3>
     <pre><code>az sql server audit-policy update --resource-group &lt;rg&gt; --name &lt;srv&gt; --state Enabled --storage-account &lt;sa&gt;
 az sql server advanced-threat-protection-setting update --resource-group &lt;rg&gt; --server &lt;srv&gt; --state Enabled</code></pre>
-    <h3>NSG — Remove Permissive Inbound Rules</h3>
+    <h3>NSG - Remove Permissive Inbound Rules</h3>
     <pre><code>az network nsg rule list -g &lt;rg&gt; --nsg-name &lt;nsg&gt; \
   --query "[?access=='Allow'&&direction=='Inbound'&&(sourceAddressPrefix=='*'||sourceAddressPrefix=='Internet')]"
 az network nsg rule delete -g &lt;rg&gt; --nsg-name &lt;nsg&gt; --name &lt;rule&gt;</code></pre>
-    <h3>RBAC — Remove Excessive Permissions</h3>
+    <h3>RBAC - Remove Excessive Permissions</h3>
     <pre><code>az role assignment list --subscription &lt;sub&gt; --role Owner \
   --query "[].{Principal:principalName,Type:principalType}"
 az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscription &lt;sub&gt;</code></pre>

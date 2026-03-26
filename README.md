@@ -1,4 +1,4 @@
-# ABS CyberDefense — Security Dashboard
+# ABS CyberDefense - Security Dashboard
 
 Live Azure security dashboard for the ABS IMS Security team. Queries Microsoft Sentinel, Azure Resource Graph, Log Analytics, and connected data sources in real time using the signed-in user's delegated Azure AD credentials.
 
@@ -8,7 +8,7 @@ Live Azure security dashboard for the ABS IMS Security team. Queries Microsoft S
 
 ## Authentication
 
-Sign in with your ABS Azure AD account (`@eagle.org`). The dashboard uses MSAL.js with PKCE — no passwords or secrets are stored anywhere.
+Sign in with your ABS Azure AD account (`@eagle.org`). The dashboard uses MSAL.js with PKCE - no passwords or secrets are stored anywhere.
 
 **App Registration:** `EA-SecurityDashboard-Prod-AppReg`  
 **Tenant:** American Bureau of Shipping (`d810b06c-d004-4d52-b0aa-4f3581ee7020`)  
@@ -62,7 +62,7 @@ Coverage: **97 of 103 subscriptions** sending data to `law-security-prod`.
 3. Go to **github.com/edevine-eagle-org/CyberDefense**
 4. Click **Add file → Upload files**
 5. Drop in the updated `index.html` and commit
-6. GitHub Pages deploys automatically — allow ~60 seconds
+6. GitHub Pages deploys automatically - allow ~60 seconds
 
 ---
 
@@ -74,7 +74,7 @@ In `index.html`, find the relevant dashboard array (e.g. `d5` for Security Postu
 {
   label: 'My Panel Title',
   type: 'arg',        // 'arg' for Resource Graph, 'la' for Log Analytics
-  viz: 'timechart',   // optional: 'timechart', 'barchart', 'tiles' — omit for table
+  viz: 'timechart',   // optional: 'timechart', 'barchart', 'tiles' - omit for table
   query: `Resources
 | where type == 'microsoft.compute/virtualmachines'
 | summarize Count=count() by location`
@@ -114,5 +114,5 @@ If the App Registration is recreated or the workspace changes, update these valu
 
 ## Maintainer
 
-**Eddie Devine** — SIEM Engineer, ABS Cyber Defense  
+**Eddie Devine** - SIEM Engineer, ABS Cyber Defense  
 `EDevine-C0@eagle.org`
