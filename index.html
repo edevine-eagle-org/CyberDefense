@@ -39,6 +39,25 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 #trSel:focus{border-color:var(--cyan);}
 .tbbtn{background:transparent;border:1px solid var(--border2);color:var(--txt2);font-family:var(--fm);font-size:11px;padding:5px 11px;border-radius:var(--r);cursor:pointer;transition:all 0.15s;}
 .tbbtn:hover{border-color:var(--cyan);color:var(--cyan);}
+/* Subscription filter */
+.sub-filter-wrap{position:relative;display:none;}
+#subFilterBtn{background:var(--bg3);border:1px solid var(--border2);color:var(--txt);font-family:var(--fm);font-size:11px;padding:5px 10px;border-radius:var(--r);cursor:pointer;outline:none;min-width:160px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:border-color 0.15s;}
+#subFilterBtn:hover,#subFilterBtn.open{border-color:var(--cyan);color:var(--cyan);}
+#subFilterBtn .sf-arrow{font-size:9px;opacity:0.6;}
+#subDropdown{display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);z-index:300;min-width:280px;max-height:360px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);}
+#subDropdown.open{display:block;}
+.sub-search{padding:8px 10px;border-bottom:1px solid var(--border);}
+.sub-search input{background:var(--bg3);border:1px solid var(--border2);color:var(--txt);font-family:var(--fm);font-size:11px;padding:4px 8px;border-radius:2px;width:100%;outline:none;}
+.sub-search input:focus{border-color:var(--cyan);}
+.sub-actions{padding:5px 10px;border-bottom:1px solid var(--border);display:flex;gap:10px;}
+.sub-action-btn{background:none;border:none;color:var(--cyan);font-family:var(--fm);font-size:10px;cursor:pointer;padding:0;letter-spacing:0.3px;}
+.sub-action-btn:hover{text-decoration:underline;}
+.sub-list{padding:4px 0;}
+.sub-item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;transition:background 0.1s;font-family:var(--fm);font-size:11px;color:var(--txt);}
+.sub-item:hover{background:var(--bg3);}
+.sub-item input[type=checkbox]{accent-color:var(--cyan);cursor:pointer;flex-shrink:0;}
+.sub-item-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sub-item-id{font-size:9px;color:var(--txt3);white-space:nowrap;}
 #ubadge{display:none;align-items:center;gap:7px;font-family:var(--fm);font-size:10px;color:var(--txt2);}
 .pdot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2.5s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
@@ -195,6 +214,21 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
       <option value="14d">Last 14 days</option>
       <option value="30d">Last 30 days</option>
     </select>
+    <div class="sub-filter-wrap" id="subFilterWrap">
+      <button id="subFilterBtn" onclick="toggleSubDropdown()">
+        <span id="subFilterLabel">All Subscriptions</span>
+        <span class="sf-arrow">▼</span>
+      </button>
+      <div id="subDropdown">
+        <div class="sub-search"><input type="text" placeholder="Search subscriptions..." oninput="filterSubList(this.value)"></div>
+        <div class="sub-actions">
+          <button class="sub-action-btn" onclick="selectAllSubs()">Select All</button>
+          <button class="sub-action-btn" onclick="clearAllSubs()">Clear All</button>
+          <button class="sub-action-btn" onclick="applySubFilter()">Apply</button>
+        </div>
+        <div class="sub-list" id="subList"></div>
+      </div>
+    </div>
     <button class="tbbtn" onclick="refreshAct()">↺ Refresh</button>
     <div id="ubadge"><div class="pdot"></div><span id="uemail"></span></div>
     <button id="loginBtn" onclick="signIn()">Sign In</button>
@@ -270,7 +304,7 @@ async function runARG(q){
   const t=await tok('https://management.azure.com/user_impersonation');
   const r=await fetch('https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01',{
     method:'POST',headers:{'Authorization':'Bearer '+t,'Content-Type':'application/json'},
-    body:JSON.stringify({query:q,subscriptions:CFG.subscriptions,options:{resultFormat:'objectArray',top:5000}})
+    body:JSON.stringify({query:q,subscriptions:getSelectedSubs(),options:{resultFormat:'objectArray',top:5000}})
   });
   if(!r.ok)throw new Error(`ARG ${r.status}: ${await r.text()}`);
   return(await r.json()).data||[];
@@ -1401,6 +1435,111 @@ d6:[
 ],
 };
 
+// ── SUBSCRIPTION FILTER ───────────────────────────────────────
+let allSubs = [];       // [{id, name}]
+let selectedSubs = [];  // [id, ...]
+
+function getSelectedSubs() {
+  return selectedSubs.length > 0 ? selectedSubs : allSubs.map(s=>s.id);
+}
+
+async function loadSubscriptions() {
+  try {
+    const rows = await runARG(`ResourceContainers
+| where type == 'microsoft.resources/subscriptions'
+| project name, subscriptionId
+| order by name asc`);
+    allSubs = rows.map(r => ({id: r.subscriptionId, name: r.name}));
+    selectedSubs = allSubs.map(s => s.id); // default: all selected
+    renderSubList('');
+    updateSubLabel();
+    document.getElementById('subFilterWrap').style.display = 'block';
+  } catch(e) {
+    console.error('Failed to load subscriptions', e);
+  }
+}
+
+function renderSubList(filter) {
+  const list = document.getElementById('subList');
+  const filtered = filter
+    ? allSubs.filter(s => s.name.toLowerCase().includes(filter.toLowerCase()) || s.id.includes(filter))
+    : allSubs;
+  list.innerHTML = filtered.map(s => `
+    <div class="sub-item" onclick="toggleSub('${s.id}',this)">
+      <input type="checkbox" id="sc_${s.id}" ${selectedSubs.includes(s.id)?'checked':''} onclick="event.stopPropagation();toggleSub('${s.id}',this.closest('.sub-item'))">
+      <div>
+        <div class="sub-item-name">${s.name}</div>
+        <div class="sub-item-id">${s.id}</div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleSub(id, el) {
+  const cb = document.getElementById('sc_'+id);
+  if (selectedSubs.includes(id)) {
+    selectedSubs = selectedSubs.filter(s => s !== id);
+    if(cb) cb.checked = false;
+  } else {
+    selectedSubs.push(id);
+    if(cb) cb.checked = true;
+  }
+  updateSubLabel();
+}
+
+function selectAllSubs() {
+  selectedSubs = allSubs.map(s=>s.id);
+  renderSubList(document.querySelector('#subDropdown .sub-search input')?.value || '');
+  updateSubLabel();
+}
+
+function clearAllSubs() {
+  selectedSubs = [];
+  renderSubList(document.querySelector('#subDropdown .sub-search input')?.value || '');
+  updateSubLabel();
+}
+
+function filterSubList(val) {
+  renderSubList(val);
+}
+
+function updateSubLabel() {
+  const lbl = document.getElementById('subFilterLabel');
+  if (!lbl) return;
+  if (selectedSubs.length === 0) lbl.textContent = 'No Subscriptions';
+  else if (selectedSubs.length === allSubs.length) lbl.textContent = 'All Subscriptions';
+  else if (selectedSubs.length === 1) {
+    const s = allSubs.find(x=>x.id===selectedSubs[0]);
+    lbl.textContent = s ? s.name : '1 Selected';
+  } else lbl.textContent = `${selectedSubs.length} Subscriptions`;
+}
+
+function applySubFilter() {
+  toggleSubDropdown();
+  Object.keys(PC).forEach(k=>delete PC[k]);
+  refreshAct();
+  loadKPIs(aDash);
+}
+
+function toggleSubDropdown() {
+  const dd = document.getElementById('subDropdown');
+  const btn = document.getElementById('subFilterBtn');
+  const isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    // close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', function closeDD(e) {
+        if (!document.getElementById('subFilterWrap').contains(e.target)) {
+          dd.classList.remove('open');
+          btn.classList.remove('open');
+          document.removeEventListener('click', closeDD);
+        }
+      });
+    }, 0);
+  }
+}
+
 // ── AUTH & INIT ───────────────────────────────────────────────
 function onAuth(){
   document.getElementById('loginBtn').style.display='none';
@@ -1420,6 +1559,7 @@ function onAuth(){
   buildDash('d8',PANELS.d8);
   buildDash('d10',PANELS.d10);
   loadKPIs('d5');
+  loadSubscriptions();
 }
 window.addEventListener('DOMContentLoaded',async()=>{
   if(NCFG)document.getElementById('cfgwarn').style.display='block';
