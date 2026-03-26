@@ -204,9 +204,8 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 <div id="cfgwarn">⚠ &nbsp;App Registration pending — authentication will be enabled once the Client ID is received.</div>
 
 <div id="pbanner">
-  <span class="ppill">Phase 1</span>
-  <span style="color:var(--txt2)">Security Posture · Sentinel Health · MDE Coverage</span>
-  
+  <span class="ppill">ABS IMS Security</span>
+  <span style="color:var(--txt2)">Security Posture · Sentinel Health · MDE Coverage · Tenant &amp; Governance · Networking · Compute · Data &amp; Storage · AI &amp; Apps · GitHub / DevOps</span>
 </div>
 
 <div id="mainTabs">
@@ -427,11 +426,16 @@ function buildDash(id,panels){
     if(p.type==='static'){
       div.innerHTML=`<div class="phdr"><div class="ptitle">${p.label}</div><div class="phr"><span class="qbadge qb-st">Reference</span></div></div><div class="scont">${p.html}</div>`;
     }else{
-      div.innerHTML=`<div class="phdr"><div class="ptitle">${p.label}</div><div class="phr"><span class="qbadge ${p.type==='arg'?'qb-arg':'qb-la'}">${p.type==='arg'?'Resource Graph':'Log Analytics'}</span><button class="runbtn" onclick="(()=>{delete PC['${cid}'];execP(PANELS['${id}'][${i}],'${cid}',true);})()">↺ Run</button></div></div><div id="${cid}"><div class="sbox"><div class="sico">◈</div>${acct?'Click ↺ Run or select this tab to load.':'Sign in to load data.'}</div></div>`;
+      div.innerHTML=`<div class="phdr"><div class="ptitle">${p.label}</div><div class="phr"><span class="qbadge ${p.type==='arg'?'qb-arg':'qb-la'}">${p.type==='arg'?'Resource Graph':'Log Analytics'}</span><button class="runbtn" onclick="(()=>{delete PC['${cid}'];execP(PANELS['${id}'][${i}],'${cid}',true);})()">↺ Refresh</button></div></div><div id="${cid}"><div class="lbar"></div><div class="sbox sk">Loading…</div></div>`;
     }
     cont.appendChild(div);
   });
-  if(acct)execP(panels[0],`${id}-0`,false);
+  // auto-load all panels in background
+  if(acct){
+    panels.forEach((p,i)=>{
+      if(p.type!=='static') setTimeout(()=>execP(p,`${id}-${i}`,false), i*120);
+    });
+  }
 }
 
 // ── KPI STRIPS ────────────────────────────────────────────────
