@@ -206,25 +206,30 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 <div id="pbanner">
   <span class="ppill">Phase 1</span>
   <span style="color:var(--txt2)">Security Posture · Sentinel Health · MDE Coverage</span>
-  <span style="margin-left:auto">Phase 2: Tenant &amp; Governance · Networking · Compute · Storage · AI · Inventory · GitHub</span>
+  
 </div>
 
 <div id="mainTabs">
   <span class="mtab act" onclick="switchD('d5',this)">🛡️ Security Posture</span>
   <span class="mtab"     onclick="switchD('d7',this)">🔍 Sentinel Health</span>
   <span class="mtab"     onclick="switchD('d6',this)">🖥️ MDE Coverage</span>
-  <span class="mtab dis" title="Phase 2">🏢 Tenant &amp; Governance</span>
-  <span class="mtab dis" title="Phase 2">🌐 Networking</span>
-  <span class="mtab dis" title="Phase 2">💻 Compute</span>
-  <span class="mtab dis" title="Phase 2">🗄️ Data &amp; Storage</span>
-  <span class="mtab dis" title="Phase 2">🤖 AI &amp; Apps</span>
-  <span class="mtab dis" title="Phase 2">📋 Full Inventory</span>
-  <span class="mtab dis" title="Phase 2">🐙 GitHub / DevOps</span>
+  <span class="mtab" onclick="switchD('d1',this)">🏢 Tenant &amp; Governance</span>
+  <span class="mtab" onclick="switchD('d2',this)">🌐 Networking</span>
+  <span class="mtab" onclick="switchD('d3',this)">💻 Compute</span>
+  <span class="mtab" onclick="switchD('d4',this)">🗄️ Data &amp; Storage</span>
+  <span class="mtab" onclick="switchD('d8',this)">🤖 AI &amp; Apps</span>
+  <span class="mtab" onclick="switchD('d10',this)">🐙 GitHub / DevOps</span>
 </div>
 
 <div id="content">
   <div class="dsect act" id="ds-d5"><div class="kstrip" id="kpi-d5"></div><div class="stbar-wrap"><div class="stbar" id="st-d5"></div></div><div id="pn-d5"></div></div>
   <div class="dsect"     id="ds-d7"><div class="kstrip" id="kpi-d7"></div><div class="stbar-wrap"><div class="stbar" id="st-d7"></div></div><div id="pn-d7"></div></div>
+  <div class="dsect" id="ds-d1"><div class="kstrip" id="kpi-d1"></div><div class="stbar-wrap"><div class="stbar" id="st-d1"></div></div><div id="pn-d1"></div></div>
+  <div class="dsect" id="ds-d2"><div class="kstrip" id="kpi-d2"></div><div class="stbar-wrap"><div class="stbar" id="st-d2"></div></div><div id="pn-d2"></div></div>
+  <div class="dsect" id="ds-d3"><div class="kstrip" id="kpi-d3"></div><div class="stbar-wrap"><div class="stbar" id="st-d3"></div></div><div id="pn-d3"></div></div>
+  <div class="dsect" id="ds-d4"><div class="kstrip" id="kpi-d4"></div><div class="stbar-wrap"><div class="stbar" id="st-d4"></div></div><div id="pn-d4"></div></div>
+  <div class="dsect" id="ds-d8"><div class="kstrip" id="kpi-d8"></div><div class="stbar-wrap"><div class="stbar" id="st-d8"></div></div><div id="pn-d8"></div></div>
+  <div class="dsect" id="ds-d10"><div class="kstrip" id="kpi-d10"></div><div class="stbar-wrap"><div class="stbar" id="st-d10"></div></div><div id="pn-d10"></div></div>
   <div class="dsect"     id="ds-d6"><div class="kstrip" id="kpi-d6"></div><div class="stbar-wrap"><div class="stbar" id="st-d6"></div></div><div id="pn-d6"></div></div>
 </div>
 
@@ -447,6 +452,54 @@ const KDEFS={
     {l:'Tables Ingesting',c:'kc-gn',q:{t:'la',q:`Usage|where TimeGenerated>=ago(1d)|summarize Count=dcount(DataType)`},k:'Count'},
     {l:'Ingestion Today (GB)',c:'kc-bl',q:{t:'la',q:`Usage|where TimeGenerated>=ago(1d)|summarize GB=round(sum(Quantity)/1024,1)`},k:'GB'},
     {l:'Alerts (7d)',c:'kc-or',q:{t:'la',q:`SecurityAlert|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
+  ],
+  d1:[
+    {l:'Total Subscriptions',c:'kc-cy',q:{t:'arg',q:`ResourceContainers|where type=='microsoft.resources/subscriptions'|summarize Count=count()`},k:'Count'},
+    {l:'Guest Principals',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.authorization/roleassignments'|where properties.principalType in ('Guest','ForeignGroup')|summarize Count=count()`},k:'Count'},
+    {l:'Policy NonCompliant',c:'kc-rd',q:{t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Count=count()`},k:'Count'},
+    {l:'Sign-in Failures (7d)',c:'kc-or',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`},k:'Count'},
+    {l:'Legacy Auth (7d)',c:'kc-yw',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ClientAppUsed in ('Exchange ActiveSync','IMAP4','POP3','Authenticated SMTP','Autodiscover')|summarize Count=count()`},k:'Count'},
+    {l:'Shadow Subscriptions',c:'kc-bl',q:{t:'arg',q:`ResourceContainers|where type=='microsoft.resources/subscriptions'|extend MgChain=array_length(properties.managementGroupAncestorsChain)|where MgChain==0 or isnull(MgChain)|summarize Count=count()`},k:'Count'},
+  ],
+  d2:[
+    {l:'Total VNets',c:'kc-cy',q:{t:'arg',q:`Resources|where type=='microsoft.network/virtualnetworks'|summarize Count=count()`},k:'Count'},
+    {l:'Public IPs',c:'kc-or',q:{t:'arg',q:`Resources|where type=='microsoft.network/publicipaddresses'|summarize Count=count()`},k:'Count'},
+    {l:'NSGs',c:'kc-bl',q:{t:'arg',q:`Resources|where type=='microsoft.network/networksecuritygroups'|summarize Count=count()`},k:'Count'},
+    {l:'Permissive NSG Rules',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.network/networksecuritygroups'|mv-expand Rule=properties.securityRules|where tostring(Rule.properties.access)=='Allow' and tostring(Rule.properties.direction)=='Inbound' and tostring(Rule.properties.sourceAddressPrefix) in ('*','Internet','0.0.0.0/0')|summarize Count=count()`},k:'Count'},
+    {l:'VNet Peerings',c:'kc-gn',q:{t:'arg',q:`Resources|where type=='microsoft.network/virtualnetworks'|extend PeeringCount=array_length(properties.virtualNetworkPeerings)|summarize Count=sum(PeeringCount)`},k:'Count'},
+    {l:'Private Endpoints',c:'kc-cy',q:{t:'arg',q:`Resources|where type=='microsoft.network/privateendpoints'|summarize Count=count()`},k:'Count'},
+  ],
+  d3:[
+    {l:'Total VMs',c:'kc-cy',q:{t:'arg',q:`Resources|where type=='microsoft.compute/virtualmachines'|summarize Count=count()`},k:'Count'},
+    {l:'Unencrypted Disks',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.compute/disks'|where properties.encryption.type=='EncryptionAtRestWithPlatformKey'|summarize Count=count()`},k:'Count'},
+    {l:'AKS Clusters',c:'kc-bl',q:{t:'arg',q:`Resources|where type=='microsoft.containerservice/managedclusters'|summarize Count=count()`},k:'Count'},
+    {l:'App Services',c:'kc-gn',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|summarize Count=count()`},k:'Count'},
+    {l:'No Agent VMs',c:'kc-yw',q:{t:'arg',q:`Resources|where type=='microsoft.compute/virtualmachines'|extend VMId=tolower(id)|join kind=leftouter(Resources|where type=='microsoft.compute/virtualmachines/extensions'|where name has 'AzureMonitor' or name has 'MicrosoftMonitoring'|extend VMId=tolower(tostring(split(id,'/extensions/')[0]))|project VMId,AgentType=name)on $left.VMId==$right.VMId|where isempty(AgentType)|summarize Count=count()`},k:'Count'},
+    {l:'Container Registries',c:'kc-or',q:{t:'arg',q:`Resources|where type=='microsoft.containerregistry/registries'|summarize Count=count()`},k:'Count'},
+  ],
+  d4:[
+    {l:'Storage Accounts',c:'kc-cy',q:{t:'arg',q:`Resources|where type=='microsoft.storage/storageaccounts'|summarize Count=count()`},k:'Count'},
+    {l:'Public Blob Access',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.storage/storageaccounts'|where properties.allowBlobPublicAccess==true|summarize Count=count()`},k:'Count'},
+    {l:'Key Vaults',c:'kc-bl',q:{t:'arg',q:`Resources|where type=='microsoft.keyvault/vaults'|summarize Count=count()`},k:'Count'},
+    {l:'Expiring Secrets',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.keyvault/vaults/secrets'|extend ExpiryDate=todatetime(properties.attributes.exp)|where datetime_diff('day',ExpiryDate,now())<30 and isnotnull(ExpiryDate)|summarize Count=count()`},k:'Count'},
+    {l:'SQL Servers',c:'kc-gn',q:{t:'arg',q:`Resources|where type=='microsoft.sql/servers'|summarize Count=count()`},k:'Count'},
+    {l:'Unprotected VMs',c:'kc-yw',q:{t:'arg',q:`Resources|where type=='microsoft.compute/virtualmachines'|extend VMId=tolower(id)|join kind=leftouter(Resources|where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'|where properties.workloadType=='VM'|extend SourceVMId=tolower(tostring(properties.sourceResourceId))|project SourceVMId)on $left.VMId==$right.SourceVMId|where isempty(SourceVMId)|summarize Count=count()`},k:'Count'},
+  ],
+  d8:[
+    {l:'AI Services',c:'kc-cy',q:{t:'arg',q:`Resources|where type has 'microsoft.cognitiveservices' or type has 'microsoft.machinelearningservices' or type has 'microsoft.botservice' or type has 'microsoft.search/searchservices'|summarize Count=count()`},k:'Count'},
+    {l:'Public AI Resources',c:'kc-rd',q:{t:'arg',q:`Resources|where type has 'microsoft.cognitiveservices' or type has 'microsoft.machinelearningservices'|where properties.publicNetworkAccess=='Enabled'|summarize Count=count()`},k:'Count'},
+    {l:'App Services',c:'kc-bl',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|summarize Count=count()`},k:'Count'},
+    {l:'HTTPS Not Enforced',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|where properties.httpsOnly!=true|summarize Count=count()`},k:'Count'},
+    {l:'Function Apps',c:'kc-gn',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|where kind has 'functionapp'|summarize Count=count()`},k:'Count'},
+    {l:'APIM Services',c:'kc-or',q:{t:'arg',q:`Resources|where type=='microsoft.apimanagement/service'|summarize Count=count()`},k:'Count'},
+  ],
+  d10:[
+    {l:'Events (30d)',c:'kc-cy',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|summarize Count=count()`},k:'Count'},
+    {l:'Human Actors',c:'kc-bl',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where ActorIsBot==false and isnotempty(Actor)|summarize Count=dcount(Actor)`},k:'Count'},
+    {l:'Secret Leaks',c:'kc-rd',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='secret_scanning_alert.public_leak'|summarize Count=count()`},k:'Count'},
+    {l:'Vuln Alerts',c:'kc-or',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='repository_vulnerability_alert.create'|summarize Count=count()`},k:'Count'},
+    {l:'Branch Overrides',c:'kc-yw',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='protected_branch.policy_override'|summarize Count=count()`},k:'Count'},
+    {l:'Workflow Failures',c:'kc-rd',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='workflows.completed_workflow_run' and Conclusion=='failure'|summarize Count=count()`},k:'Count'},
   ],
   d6:[
     {l:'Total Devices',c:'kc-cy',q:{t:'la',q:`DeviceInfo|where Timestamp>=ago(7d)|summarize arg_max(Timestamp,*)by DeviceId|summarize Count=count()`},k:'Count'},
@@ -680,6 +733,490 @@ az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscrip
 | order by FailureCount desc
 | take 200`},
 ],
+d1:[
+  {label:'Subscription Overview',type:'arg',query:`ResourceContainers
+| where type=='microsoft.resources/subscriptions'
+| extend State=tostring(properties.state)
+| extend MgChain=strcat_array(properties.managementGroupAncestorsChain,' > ')
+| extend PortalLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource',id)
+| project SubscriptionName=name,SubscriptionId=subscriptionId,State,MgChain,PortalLink
+| order by SubscriptionName asc`},
+  {label:'Management Groups',type:'arg',query:`ResourceContainers
+| where type=='microsoft.management/managementgroups' or type=='microsoft.resources/subscriptions'
+| extend MgDisplayName=tostring(properties.displayName)
+| extend ParentId=tostring(properties.parent.id)
+| extend ParentName=tostring(split(ParentId,'/')[4])
+| project ResourceType=type,Name=name,DisplayName=MgDisplayName,ParentName,TenantId=tenantId
+| order by ResourceType asc,Name asc | take 1000`},
+  {label:'RBAC Summary',type:'arg',query:`AuthorizationResources
+| where type=='microsoft.authorization/roleassignments'
+| extend PrincipalType=tostring(properties.principalType)
+| extend Scope=tostring(properties.scope)
+| extend ScopeLevel=case(Scope matches regex '^/providers/Microsoft.Management','Management Group',Scope matches regex '^/subscriptions/[^/]+$','Subscription',Scope matches regex '^/subscriptions/[^/]+/resourceGroups/[^/]+$','Resource Group',Scope=='/','Tenant Root','Resource')
+| summarize Count=count() by PrincipalType,ScopeLevel
+| order by PrincipalType asc,ScopeLevel asc`},
+  {label:'Privileged Roles',type:'arg',query:`Resources
+| where type=='microsoft.authorization/roleassignments'
+| extend PrincipalType=tostring(properties.principalType)
+| extend RoleId=tolower(tostring(properties.roleDefinitionId))
+| extend Scope=tostring(properties.scope)
+| extend RoleName=case(RoleId has '8e3af657-a8ff-443c-a75c-2fe8c4bcb635','Owner',RoleId has 'b24988ac-6180-42a0-ab88-20f7382dd24c','Contributor',RoleId has '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9','User Access Administrator',RoleId has 'fb1c8493-542b-48eb-b624-b4c8fea62acd','Security Admin',RoleId has '62e90394-69f5-4237-9190-012177145e10','Global Administrator',RoleId has 'e8611ab8-c189-46e8-94e1-60213ab1f814','Privileged Role Administrator','Other')
+| where RoleName!='Other'
+| extend IAMLink=strcat('https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade/subscriptionId/',subscriptionId)
+| project RoleName,PrincipalType,Scope,IAMLink,SubscriptionId=subscriptionId
+| order by RoleName asc | take 1000`},
+  {label:'Guest Principals',type:'arg',query:`Resources
+| where type=='microsoft.authorization/roleassignments'
+| where properties.principalType in ('Guest','ForeignGroup')
+| extend PrincipalType=tostring(properties.principalType)
+| extend RoleId=tolower(tostring(properties.roleDefinitionId))
+| extend Scope=tostring(properties.scope)
+| extend IAMLink=strcat('https://portal.azure.com/#blade/Microsoft_Azure_AD/IAMBlade/subscriptionId/',subscriptionId)
+| project PrincipalType,RoleId,Scope,IAMLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by PrincipalType asc | take 1000`},
+  {label:'Policy Compliance',type:'arg',query:`PolicyResources
+| where type=~'microsoft.policyinsights/policystates'
+| extend ComplianceState=tostring(properties.complianceState)
+| extend AssignmentName=tostring(properties.policyAssignmentName)
+| summarize Total=count(),NonCompliant=countif(ComplianceState=='NonCompliant'),Compliant=countif(ComplianceState=='Compliant') by Subscription=subscriptionId,AssignmentName
+| extend CompliancePct=round(toreal(Compliant)/Total*100,1)
+| extend Status=case(CompliancePct>=90,'🟢',CompliancePct>=70,'🟡','🔴')
+| project Subscription,Assignment=AssignmentName,Total,Compliant,NonCompliant,CompliancePct,Status
+| order by CompliancePct asc | take 1000`},
+  {label:'Tag Coverage',type:'arg',query:`Resources
+| where type !in ('microsoft.resources/subscriptions','microsoft.resources/resourcegroups')
+| extend TagCount=array_length(bag_keys(tags))
+| summarize Total=count(),Untagged=countif(TagCount==0),PartiallyTagged=countif(TagCount>0 and TagCount<3),FullyTagged=countif(TagCount>=3) by Subscription=subscriptionId
+| extend TagCompliance=round(toreal(FullyTagged)/Total*100,1)
+| extend Status=case(TagCompliance>=80,'🟢',TagCompliance>=50,'🟡','🔴')
+| project Subscription,Total,FullyTagged,PartiallyTagged,Untagged,TagCompliance,Status
+| order by TagCompliance asc | take 1000`},
+  {label:'Sign-in Failures',type:'la',query:`SigninLogs
+| where TimeGenerated {TimeRange}
+| where ResultType!='0'
+| extend FailureReason=tostring(Status.failureReason)
+| summarize FailureCount=count(),UniqueIPs=dcount(IPAddress) by UserPrincipalName,AppDisplayName,FailureReason,ErrorCode=ResultType
+| order by FailureCount desc | take 500`},
+  {label:'Legacy Auth',type:'la',query:`SigninLogs
+| where TimeGenerated {TimeRange}
+| where ClientAppUsed in ('Exchange ActiveSync','Exchange Online PowerShell','Exchange Web Services','IMAP4','MAPI Over HTTP','Offline Address Book','Other clients','POP3','Reporting Web Services','Authenticated SMTP','Autodiscover')
+| where ResultType=='0'
+| summarize Count=count() by bin(TimeGenerated,1d),ClientAppUsed
+| order by TimeGenerated asc`},
+  {label:'Geo Distribution',type:'la',query:`SigninLogs
+| where TimeGenerated {TimeRange}
+| extend Country=tostring(LocationDetails.countryOrRegion)
+| extend City=tostring(LocationDetails.city)
+| extend IsSuccess=ResultType=='0'
+| summarize TotalLogins=count(),Successes=countif(IsSuccess),Failures=countif(not(IsSuccess)),UniqueUsers=dcount(UserPrincipalName) by Country,City
+| order by TotalLogins desc | take 100`},
+  {label:'Shadow Subscriptions',type:'arg',query:`ResourceContainers
+| where type=='microsoft.resources/subscriptions'
+| extend MgChain=array_length(properties.managementGroupAncestorsChain)
+| where MgChain==0 or isnull(MgChain)
+| extend PortalLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource',id)
+| project SubscriptionName=name,SubscriptionId=subscriptionId,State=tostring(properties.state),PortalLink
+| order by SubscriptionName asc`},
+],
+d2:[
+  {label:'VNet Overview',type:'arg',query:`Resources
+| where type=='microsoft.network/virtualnetworks'
+| extend AddressSpaces=tostring(properties.addressSpace.addressPrefixes)
+| extend SubnetCount=array_length(properties.subnets)
+| extend PeeringCount=array_length(properties.virtualNetworkPeerings)
+| extend DDoSProtection=tostring(properties.enableDdosProtection)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project VNetName=name,AddressSpaces,SubnetCount,PeeringCount,DDoSProtection,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by SubscriptionId asc,VNetName asc | take 1000`},
+  {label:'Subnet Inventory',type:'arg',query:`Resources
+| where type=='microsoft.network/virtualnetworks'
+| mv-expand subnet=properties.subnets
+| extend SubnetName=tostring(subnet.name)
+| extend AddressPrefix=tostring(subnet.properties.addressPrefix)
+| extend NSGAttached=iff(isnotnull(subnet.properties.networkSecurityGroup),'Yes','No')
+| extend RouteTableAttached=iff(isnotnull(subnet.properties.routeTable),'Yes','No')
+| project VNetName=name,SubnetName,AddressPrefix,NSGAttached,RouteTableAttached,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by SubscriptionId asc,VNetName asc,SubnetName asc | take 2000`},
+  {label:'NSG Inventory',type:'arg',query:`Resources
+| where type=='microsoft.network/networksecuritygroups'
+| extend InboundRules=array_length(properties.securityRules)
+| extend SubnetAssociations=array_length(properties.subnets)
+| extend NicAssociations=array_length(properties.networkInterfaces)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project NSGName=name,InboundRules,SubnetAssociations,NicAssociations,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by SubscriptionId asc | take 1000`},
+  {label:'NSG Permissive Rules',type:'arg',query:`Resources
+| where type=='microsoft.network/networksecuritygroups'
+| mv-expand Rule=properties.securityRules
+| where tostring(Rule.properties.access)=='Allow' and tostring(Rule.properties.direction)=='Inbound'
+    and tostring(Rule.properties.sourceAddressPrefix) in ('*','Internet','0.0.0.0/0')
+| extend Priority=toint(Rule.properties.priority)
+| extend DestPort=tostring(Rule.properties.destinationPortRange)
+| extend Protocol=tostring(Rule.properties.protocol)
+| extend RuleName=tostring(Rule.name)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project NSGName=name,RuleName,Priority,DestPort,Protocol,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by Priority asc | take 1000`},
+  {label:'Public IP Exposure',type:'arg',query:`Resources
+| where type=='microsoft.network/publicipaddresses'
+| extend IPAddress=tostring(properties.ipAddress)
+| extend AllocationMethod=tostring(properties.publicIPAllocationMethod)
+| extend SKU=tostring(sku.name)
+| extend AssociatedResourceName=tostring(split(tostring(coalesce(properties.ipConfiguration.id,properties.natGateway.id,'Unassociated')),'/')[-1])
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project PIPName=name,IPAddress,AllocationMethod,SKU,AssociatedResourceName,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by AssociatedResourceName asc | take 1000`},
+  {label:'VNet Peerings',type:'arg',query:`Resources
+| where type=='microsoft.network/virtualnetworks'
+| mv-expand peering=properties.virtualNetworkPeerings
+| extend PeeringName=tostring(peering.name)
+| extend PeeringState=tostring(peering.properties.peeringState)
+| extend RemoteVNet=tostring(split(tostring(peering.properties.remoteVirtualNetwork.id),'/')[-1])
+| extend AllowGatewayTransit=tostring(peering.properties.allowGatewayTransit)
+| extend UseRemoteGateways=tostring(peering.properties.useRemoteGateways)
+| project LocalVNet=name,PeeringName,PeeringState,RemoteVNet,AllowGatewayTransit,UseRemoteGateways,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by PeeringState asc,LocalVNet asc | take 1000`},
+  {label:'Gateways',type:'arg',query:`Resources
+| where type in ('microsoft.network/virtualnetworkgateways','microsoft.network/expressroutecircuits','microsoft.network/applicationgateways')
+| extend GatewayType=case(type=='microsoft.network/virtualnetworkgateways',tostring(properties.gatewayType),type=='microsoft.network/expressroutecircuits','ExpressRoute','AppGateway')
+| extend SKU=tostring(sku.name)
+| extend ProvisioningState=tostring(properties.provisioningState)
+| project GatewayName=name,GatewayType,SKU,ProvisioningState,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by GatewayType asc,GatewayName asc | take 1000`},
+  {label:'Azure Firewall',type:'arg',query:`Resources
+| where type=='microsoft.network/azurefirewalls'
+| extend SKUTier=tostring(properties.sku.tier)
+| extend ThreatIntelMode=tostring(properties.threatIntelMode)
+| extend PolicyName=tostring(split(tostring(properties.firewallPolicy.id),'/')[-1])
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project FirewallName=name,SKUTier,ThreatIntelMode,PolicyName,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by SubscriptionId asc | take 500`},
+  {label:'DDoS Coverage',type:'arg',query:`Resources
+| where type=='microsoft.network/virtualnetworks'
+| extend DDoSEnabled=tostring(properties.enableDdosProtection)
+| extend DDoSPlanName=iff(isnotempty(tostring(properties.ddosProtectionPlan.id)),tostring(split(tostring(properties.ddosProtectionPlan.id),'/')[-1]),'None')
+| project VNetName=name,DDoSEnabled,DDoSPlanName,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by DDoSEnabled asc,VNetName asc | take 1000`},
+  {label:'Private Endpoints',type:'arg',query:`Resources
+| where type=='microsoft.network/privateendpoints'
+| extend ConnectionState=tostring(properties.privateLinkServiceConnections[0].properties.privateLinkServiceConnectionState.status)
+| extend TargetService=tostring(split(tostring(properties.privateLinkServiceConnections[0].properties.privateLinkServiceId),'/')[-1])
+| extend VNetName=tostring(split(tostring(split(tostring(properties.subnet.id),'/subnets/')[0]),'/')[-1])
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project EndpointName=name,ConnectionState,TargetService,VNetName,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by ConnectionState asc | take 1000`},
+  {label:'Bastion Hosts',type:'arg',query:`Resources
+| where type=='microsoft.network/bastionhosts'
+| extend SKU=tostring(sku.name)
+| extend ProvisioningState=tostring(properties.provisioningState)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project BastionName=name,SKU,ProvisioningState,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by SubscriptionId asc | take 500`},
+],
+d3:[
+  {label:'VM Inventory',type:'arg',query:`Resources
+| where type=='microsoft.compute/virtualmachines'
+| extend VMSize=tostring(properties.hardwareProfile.vmSize)
+| extend OSType=tostring(properties.storageProfile.osDisk.osType)
+| extend OSPublisher=tostring(properties.storageProfile.imageReference.publisher)
+| extend PowerState=tostring(properties.extended.instanceView.powerState.displayStatus)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project VMName=name,VMSize,OSType,OSPublisher,PowerState,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by OSType asc,VMName asc | take 2000`},
+  {label:'Disk Encryption',type:'arg',query:`Resources
+| where type=='microsoft.compute/disks'
+| extend DiskSizeGB=toint(properties.diskSizeGB)
+| extend SKU=tostring(sku.name)
+| extend DiskState=tostring(properties.diskState)
+| extend EncryptionType=tostring(properties.encryption.type)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project DiskName=name,DiskSizeGB,SKU,DiskState,EncryptionType,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by EncryptionType asc,DiskState asc | take 2000`},
+  {label:'Monitoring Agent Coverage',type:'arg',query:`Resources
+| where type=='microsoft.compute/virtualmachines'
+| project id,VMName=name,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| join kind=leftouter (
+    Resources
+    | where type=='microsoft.compute/virtualmachines/extensions'
+    | where name has 'AzureMonitor' or name has 'MicrosoftMonitoring' or name has 'OmsAgent'
+    | extend VMId=tolower(tostring(split(id,'/extensions/')[0]))
+    | extend AgentType=case(name has 'AzureMonitorWindowsAgent','AMA-Windows',name has 'AzureMonitorLinuxAgent','AMA-Linux',name has 'MicrosoftMonitoringAgent','MMA-Windows',name has 'OmsAgentForLinux','MMA-Linux',name)
+    | project VMId,AgentType
+) on $left.id==$right.VMId
+| extend AgentType=coalesce(AgentType,'None')
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project VMName,AgentType,PortalLink,ResourceGroup,Location,SubscriptionId
+| order by AgentType asc,VMName asc | take 2000`},
+  {label:'AKS Clusters',type:'arg',query:`Resources
+| where type=='microsoft.containerservice/managedclusters'
+| extend K8sVersion=tostring(properties.kubernetesVersion)
+| extend ProvisioningState=tostring(properties.provisioningState)
+| extend NetworkPlugin=tostring(properties.networkProfile.networkPlugin)
+| extend RBACEnabled=tostring(properties.enableRBAC)
+| extend PrivateCluster=tostring(properties.apiServerAccessProfile.enablePrivateCluster)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project ClusterName=name,K8sVersion,NetworkPlugin,RBACEnabled,PrivateCluster,ProvisioningState,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by SubscriptionId asc | take 1000`},
+  {label:'App Services',type:'arg',query:`Resources
+| where type=='microsoft.web/sites' or type=='microsoft.web/serverfarms'
+| extend Kind=tostring(kind)
+| extend SKU=tostring(sku.name)
+| extend State=tostring(properties.state)
+| extend HTTPSOnly=tostring(properties.httpsOnly)
+| extend MinTLSVersion=tostring(properties.siteConfig.minTlsVersion)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project ResourceName=name,ResourceType=type,Kind,SKU,State,HTTPSOnly,MinTLSVersion,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by ResourceType asc,ResourceName asc | take 1000`},
+  {label:'Container Registry',type:'arg',query:`Resources
+| where type=='microsoft.containerregistry/registries'
+| extend SKU=tostring(sku.name)
+| extend AdminEnabled=tostring(properties.adminUserEnabled)
+| extend PublicAccess=tostring(properties.publicNetworkAccess)
+| extend LoginServer=tostring(properties.loginServer)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project RegistryName=name,SKU,AdminEnabled,PublicAccess,LoginServer,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by AdminEnabled desc | take 500`},
+  {label:'VMSS Inventory',type:'arg',query:`Resources
+| where type=='microsoft.compute/virtualmachinescalesets'
+| extend SKU=tostring(sku.name)
+| extend Capacity=toint(sku.capacity)
+| extend UpgradePolicy=tostring(properties.upgradePolicy.mode)
+| extend OSType=tostring(properties.virtualMachineProfile.storageProfile.osDisk.osType)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project VMSSName=name,SKU,Capacity,UpgradePolicy,OSType,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by SubscriptionId asc | take 1000`},
+],
+d4:[
+  {label:'Storage Accounts',type:'arg',query:`Resources
+| where type=='microsoft.storage/storageaccounts'
+| extend SKU=tostring(sku.name)
+| extend Kind=tostring(kind)
+| extend HTTPSOnly=tostring(properties.supportsHttpsTrafficOnly)
+| extend PublicAccess=tostring(properties.allowBlobPublicAccess)
+| extend MinTLSVersion=tostring(properties.minimumTlsVersion)
+| extend NetworkDefaultAction=tostring(properties.networkAcls.defaultAction)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project StorageName=name,SKU,Kind,HTTPSOnly,PublicAccess,MinTLSVersion,NetworkDefaultAction,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by PublicAccess desc,StorageName asc | take 1000`},
+  {label:'Key Vaults',type:'arg',query:`Resources
+| where type=='microsoft.keyvault/vaults'
+| extend SKU=tostring(properties.sku.name)
+| extend SoftDelete=tostring(properties.enableSoftDelete)
+| extend PurgeProtection=tostring(properties.enablePurgeProtection)
+| extend NetworkDefaultAction=tostring(properties.networkAcls.defaultAction)
+| extend PublicAccess=iff(NetworkDefaultAction=='Allow','Yes','No')
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project VaultName=name,SKU,SoftDelete,PurgeProtection,PublicAccess,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by PurgeProtection asc | take 1000`},
+  {label:'KV Secrets Expiry',type:'arg',query:`Resources
+| where type=='microsoft.keyvault/vaults/secrets'
+| extend Enabled=tostring(properties.attributes.enabled)
+| extend ExpiryDate=todatetime(properties.attributes.exp)
+| extend DaysUntilExpiry=datetime_diff('day',ExpiryDate,now())
+| extend Status=case(isnull(ExpiryDate),'No Expiry Set',DaysUntilExpiry<0,'Expired',DaysUntilExpiry<30,'Expiring Soon (<30d)',DaysUntilExpiry<90,'Expiring (<90d)','OK')
+| extend VaultName=tostring(split(tostring(split(id,'/secrets/')[0]),'/')[-1])
+| extend PortalLink=strcat('https://portal.azure.com/#resource',tostring(split(id,'/secrets/')[0]),'/secrets')
+| project SecretName=name,VaultName,Enabled,ExpiryDate,DaysUntilExpiry,Status,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by DaysUntilExpiry asc | take 1000`},
+  {label:'KV Cert Expiry',type:'arg',query:`Resources
+| where type=='microsoft.keyvault/vaults/certificates'
+| extend Enabled=tostring(properties.attributes.enabled)
+| extend ExpiryDate=todatetime(properties.attributes.exp)
+| extend DaysUntilExpiry=datetime_diff('day',ExpiryDate,now())
+| extend Status=case(isnull(ExpiryDate),'No Expiry Set',DaysUntilExpiry<0,'Expired',DaysUntilExpiry<30,'Expiring Soon (<30d)',DaysUntilExpiry<90,'Expiring (<90d)','OK')
+| extend VaultName=tostring(split(tostring(split(id,'/certificates/')[0]),'/')[-1])
+| extend PortalLink=strcat('https://portal.azure.com/#resource',tostring(split(id,'/certificates/')[0]),'/certificates')
+| project CertName=name,VaultName,Enabled,ExpiryDate,DaysUntilExpiry,Status,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by DaysUntilExpiry asc | take 1000`},
+  {label:'SQL Servers & DBs',type:'arg',query:`Resources
+| where type=='microsoft.sql/servers' or type=='microsoft.sql/servers/databases'
+| extend ResourceType=iff(type=='microsoft.sql/servers','SQL Server','SQL Database')
+| extend Edition=tostring(sku.tier)
+| extend PublicAccess=tostring(properties.publicNetworkAccess)
+| extend TLSVersion=tostring(properties.minimalTlsVersion)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project ResourceName=name,ResourceType,Edition,PublicAccess,TLSVersion,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by ResourceType asc,ResourceName asc | take 1000`},
+  {label:'Cosmos DB',type:'arg',query:`Resources
+| where type=='microsoft.documentdb/databaseaccounts'
+| extend Kind=tostring(kind)
+| extend PublicAccess=tostring(properties.publicNetworkAccess)
+| extend BackupPolicy=tostring(properties.backupPolicy.type)
+| extend ProvisioningState=tostring(properties.provisioningState)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project AccountName=name,Kind,PublicAccess,BackupPolicy,ProvisioningState,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by SubscriptionId asc | take 1000`},
+  {label:'PostgreSQL / MySQL',type:'arg',query:`Resources
+| where type has 'microsoft.dbforpostgresql' or type has 'microsoft.dbformysql'
+| extend DBEngine=iff(type has 'postgresql','PostgreSQL','MySQL')
+| extend SKU=tostring(sku.name)
+| extend Version=tostring(properties.version)
+| extend PublicAccess=tostring(properties.network.publicNetworkAccess)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project ServerName=name,DBEngine,Version,SKU,PublicAccess,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by DBEngine asc | take 1000`},
+  {label:'VM Backup Coverage',type:'arg',query:`Resources
+| where type=='microsoft.compute/virtualmachines'
+| extend VMId=tolower(id)
+| project VMId,VMName=name,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| join kind=leftouter (
+    Resources
+    | where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'
+    | where properties.workloadType=='VM'
+    | extend SourceVMId=tolower(tostring(properties.sourceResourceId))
+    | extend BackupStatus=tostring(properties.currentProtectionState)
+    | extend VaultName=tostring(split(tostring(split(id,'/backupFabrics/')[0]),'/')[-1])
+    | project SourceVMId,VaultName,BackupStatus
+) on $left.VMId==$right.SourceVMId
+| extend BackupStatus=coalesce(BackupStatus,'Not Protected')
+| project VMName,BackupStatus,VaultName=coalesce(VaultName,'N/A'),ResourceGroup,Location,SubscriptionId
+| order by BackupStatus asc,VMName asc | take 2000`},
+  {label:'SQL Backup Config',type:'arg',query:`Resources
+| where type=='microsoft.sql/servers/databases'
+| where name!='master'
+| extend Edition=tostring(sku.tier)
+| extend ZoneRedundant=tostring(properties.zoneRedundant)
+| extend EarliestRestoreDate=tostring(properties.earliestRestoreDate)
+| extend BackupStorageRedundancy=tostring(properties.currentBackupStorageRedundancy)
+| project DBName=name,Edition,BackupStorageRedundancy,ZoneRedundant,EarliestRestoreDate,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by BackupStorageRedundancy asc,DBName asc | take 1000`},
+],
+d8:[
+  {label:'AI Services',type:'arg',query:`Resources
+| where type has 'microsoft.cognitiveservices' or type has 'microsoft.machinelearningservices'
+    or type has 'microsoft.botservice' or type has 'microsoft.search/searchservices'
+| extend ServiceType=case(type has 'cognitiveservices','Cognitive Services / Azure AI',type has 'machinelearningservices','Azure Machine Learning',type has 'botservice','Azure Bot Service','Azure AI Search')
+| extend SKU=tostring(sku.name)
+| extend PublicAccess=tostring(properties.publicNetworkAccess)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project ResourceName=name,ServiceType,SKU,PublicAccess,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by ServiceType asc | take 1000`},
+  {label:'Shadow AI',type:'arg',query:`Resources
+| where type has 'microsoft.cognitiveservices' or type has 'microsoft.machinelearningservices' or type has 'microsoft.openai'
+| extend HasOwnerTag=isnotempty(tags.Owner) or isnotempty(tags.owner)
+| extend HasEnvTag=isnotempty(tags.Environment) or isnotempty(tags.environment)
+| extend IsGoverned=HasOwnerTag and HasEnvTag
+| extend PublicAccess=tostring(properties.publicNetworkAccess)
+| where IsGoverned==false or PublicAccess=='Enabled'
+| extend RiskFlag=case(PublicAccess=='Enabled' and IsGoverned==false,'Public + Untagged',PublicAccess=='Enabled','Public Access Enabled','Missing Governance Tags')
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project ResourceName=name,ResourceType=type,RiskFlag,PublicAccess,HasOwnerTag,HasEnvTag,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by RiskFlag asc | take 500`},
+  {label:'AI Posture',type:'arg',query:`securityresources
+| where type=='microsoft.security/assessments'
+| where properties.status.code=='Unhealthy'
+| where properties.displayName has_any ('AI','cognitive','OpenAI','machine learning','bot','search')
+| extend DisplayName=tostring(properties.displayName)
+| extend Severity=tostring(properties.metadata.severity)
+| extend ResourceName=tostring(split(tostring(properties.resourceDetails.id),'/')[-1])
+| extend RemediationDesc=tostring(properties.metadata.remediationDescription)
+| extend AssessmentKey=tostring(split(id,'/assessments/')[1])
+| extend DefenderLink=strcat('https://portal.azure.com/#blade/Microsoft_Azure_Security/RecommendationsBlade/assessmentKey/',AssessmentKey)
+| project DisplayName,Severity,ResourceName,RemediationDesc,DefenderLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by Severity asc | take 500`},
+  {label:'APIM',type:'arg',query:`Resources
+| where type=='microsoft.apimanagement/service'
+| extend SKU=tostring(sku.name)
+| extend VirtualNetworkType=tostring(properties.virtualNetworkType)
+| extend PublicAccess=tostring(properties.publicNetworkAccess)
+| extend GatewayUrl=tostring(properties.gatewayUrl)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project ServiceName=name,SKU,VirtualNetworkType,PublicAccess,GatewayUrl,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by SubscriptionId asc | take 500`},
+  {label:'App Inventory',type:'arg',query:`Resources
+| where type=='microsoft.web/sites'
+| extend Kind=tostring(kind)
+| extend State=tostring(properties.state)
+| extend DefaultHostname=tostring(properties.defaultHostName)
+| extend PlanName=tostring(split(tostring(properties.serverFarmId),'/')[-1])
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project AppName=name,Kind,State,DefaultHostname,PlanName,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| order by Kind asc | take 1000`},
+  {label:'Public Exposure',type:'arg',query:`Resources
+| where type=='microsoft.web/sites'
+| extend HTTPSOnly=tostring(properties.httpsOnly)
+| extend PublicAccess=tostring(properties.publicNetworkAccess)
+| extend InboundIPRestrictions=array_length(properties.siteConfig.ipSecurityRestrictions)
+| extend State=tostring(properties.state)
+| where State=='Running'
+| extend RiskLevel=case(HTTPSOnly!='true' and PublicAccess!='Disabled','High',HTTPSOnly!='true','Medium',PublicAccess!='Disabled' and InboundIPRestrictions<=1,'Medium','Low')
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project AppName=name,RiskLevel,HTTPSOnly,PublicAccess,InboundIPRestrictions,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by RiskLevel asc | take 1000`},
+  {label:'HTTPS & TLS',type:'arg',query:`Resources
+| where type=='microsoft.web/sites'
+| extend HTTPSOnly=tostring(properties.httpsOnly)
+| extend MinTLSVersion=tostring(properties.siteConfig.minTlsVersion)
+| extend FTPSState=tostring(properties.siteConfig.ftpsState)
+| extend HTTP20Enabled=tostring(properties.siteConfig.http20Enabled)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project AppName=name,HTTPSOnly,MinTLSVersion,FTPSState,HTTP20Enabled,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by HTTPSOnly asc | take 1000`},
+  {label:'Auth & Identity',type:'arg',query:`Resources
+| where type=='microsoft.web/sites'
+| extend MIType=tostring(identity.type)
+| extend HasMI=isnotempty(MIType) and MIType!=''
+| extend HTTPSOnly=tostring(properties.httpsOnly)
+| extend AuthStatus=case(HasMI,'Managed Identity','No Auth Configured')
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id,'/auth')
+| project AppName=name,AuthStatus,HasMI,MIType,HTTPSOnly,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by AuthStatus asc,AppName asc | take 1000`},
+  {label:'App Risk Scorecard',type:'arg',query:`Resources
+| where type=='microsoft.web/sites' or type has 'microsoft.cognitiveservices'
+| extend ResourceType=iff(type=='microsoft.web/sites','App Service','AI Service')
+| extend HTTPSOnly=tostring(properties.httpsOnly)
+| extend PublicAccess=tostring(properties.publicNetworkAccess)
+| extend HasMI=isnotempty(tostring(identity.type)) and tostring(identity.type)!=''
+| extend RiskScore=toint(0)+iff(HTTPSOnly!='true',2,0)+iff(PublicAccess=='Enabled',3,0)+iff(HasMI==false,1,0)
+| extend RiskLevel=case(RiskScore>=4,'High',RiskScore>=2,'Medium','Low')
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project ResourceName=name,ResourceType,RiskLevel,RiskScore,HTTPSOnly,PublicAccess,HasMI,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| order by RiskScore desc | take 1000`},
+  {label:'Logic Apps',type:'arg',query:`Resources
+| where type=='microsoft.logic/workflows' or (type=='microsoft.web/sites' and kind has 'workflowapp')
+| extend Plan=iff(type=='microsoft.logic/workflows','Consumption','Standard')
+| extend Status=tostring(properties.state)
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project Name=name,Status,Plan,PortalLink,ResourceGroup=resourceGroup,Location=location,Subscription=subscriptionId
+| order by Plan asc,Name asc | take 1000`},
+  {label:'Function Apps',type:'arg',query:`Resources
+| where type=='microsoft.web/sites'
+| where kind has 'functionapp'
+| extend Status=tostring(properties.state)
+| extend AppServicePlanId=tolower(tostring(properties.serverFarmId))
+| extend AppServicePlan=tostring(split(AppServicePlanId,'/')[-1])
+| join kind=leftouter (Resources|where type=='microsoft.web/serverfarms'|extend PricingTier=tostring(sku.name)|project PlanId=tolower(id),PricingTier)on $left.AppServicePlanId==$right.PlanId
+| extend AppType=case(kind has 'workflowapp','Logic App (Standard)',kind has 'linux','Function App (Linux)','Function App (Windows)')
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project Name=name,Status,Location=location,PricingTier,AppServicePlan,Subscription=subscriptionId,AppType,PortalLink
+| order by Status asc,Name asc | take 1000`},
+],
+d10:[
+  {label:'GitHub Overview',type:'la',query:`union
+  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|summarize Value=count()|extend Label="Total Events (30d)"),
+  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where isnotempty(Actor) and ActorIsBot==false|summarize Value=dcount(Actor)|extend Label="Unique Human Actors"),
+  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where isnotempty(Repo)|summarize Value=dcount(Repo)|extend Label="Unique Repos"),
+  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where isnotempty(Org)|summarize Value=dcount(Org)|extend Label="GitHub Orgs")
+| project Label,Value`},
+  {label:'Security Alerts',type:'la',query:`union
+  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='repository_vulnerability_alert.create'|summarize Created=count(),Resolved=countif(Action=='repository_vulnerability_alert.resolve') by Repo,Org
+  |extend Outstanding=Created-Resolved|order by Created desc)
+| project Repo,Org,Created,Resolved,Outstanding`},
+  {label:'Workflow & Secrets',type:'la',query:`GitHubAuditLogsV2_CL
+| where TimeGenerated>=ago(30d)
+| where isnotempty(SecretsPassed)
+| mv-expand SecretName=todynamic(SecretsPassed)
+| extend SecretStr=tostring(SecretName)
+| extend SecretCategory=case(SecretStr has_any ("CLIENT_SECRET","PASSWORD","SECRET","TOKEN","KEY","CREDENTIAL","PAT"),"Sensitive","Standard")
+| summarize Count=count(),Repos=make_set(Repo,20) by SecretStr,SecretCategory
+| order by Count desc`},
+  {label:'Access & Policy',type:'la',query:`GitHubAuditLogsV2_CL
+| where TimeGenerated>=ago(30d)
+| where Action in ("protected_branch.policy_override","org.add_member","org.remove_member","org.invite_member","repo.add_member","repo.remove_member","team.add_member","team.remove_member","repo.create","repo.destroy","org_credential_authorization.grant","org_credential_authorization.deauthorize")
+| project TimeGenerated,Action,Actor,User=tostring(column_ifexists('User','')),Org,Repo,Email=tostring(column_ifexists('Email',''))
+| order by TimeGenerated desc | take 500`},
+],
+
 d7:[
   {label:'Workspace Inventory',type:'arg',query:`Resources
 | where type=='microsoft.operationalinsights/workspaces'
@@ -871,6 +1408,12 @@ function onAuth(){
   buildDash('d5',PANELS.d5);
   buildDash('d7',PANELS.d7);
   buildDash('d6',PANELS.d6);
+  buildDash('d1',PANELS.d1);
+  buildDash('d2',PANELS.d2);
+  buildDash('d3',PANELS.d3);
+  buildDash('d4',PANELS.d4);
+  buildDash('d8',PANELS.d8);
+  buildDash('d10',PANELS.d10);
   loadKPIs('d5');
 }
 window.addEventListener('DOMContentLoaded',async()=>{
