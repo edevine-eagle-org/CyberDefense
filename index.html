@@ -1515,9 +1515,30 @@ function updateSubLabel() {
 
 function applySubFilter() {
   toggleSubDropdown();
+  // clear all cached data
   Object.keys(PC).forEach(k=>delete PC[k]);
-  refreshAct();
+  // destroy all charts
+  Object.keys(CReg).forEach(k=>{ if(CReg[k]){CReg[k].destroy();delete CReg[k];} });
+  // reset all panel content to loading state
+  document.querySelectorAll('.qpan').forEach(p=>{
+    const cid=p.dataset.cid;
+    if(cid) {
+      const el=document.getElementById(cid);
+      if(el) el.innerHTML=`<div class="lbar"></div><div class="sbox sk">Loading...</div>`;
+    }
+  });
+  // clear all KPI strips
+  document.querySelectorAll('.kstrip').forEach(s=>s.innerHTML='');
+  // rebuild active dash panels and KPIs
+  const activeStab=document.querySelector(`#st-${aDash} .stab.act`);
+  if(activeStab) activeStab.click();
   loadKPIs(aDash);
+  // re-trigger background load for all panels in active dash
+  if(PANELS[aDash]) {
+    PANELS[aDash].forEach((p,i)=>{
+      if(p.type!=='static') setTimeout(()=>execP(p,`${aDash}-${i}`,true), i*120);
+    });
+  }
 }
 
 function toggleSubDropdown() {
