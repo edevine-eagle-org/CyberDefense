@@ -252,7 +252,7 @@ async function signIn(){
   if(NCFG){alert('Fill in clientId and tenantId in CONFIG first.');return;}
   if(!mApp)initMsal();
   if(!mApp){alert('MSAL failed to initialize. Check that msal-browser.min.js loaded correctly.');return;}
-  try{const r=await mApp.loginPopup({scopes:['openid','profile','email','https://management.azure.com/user_impersonation','https://api.loganalytics.io/Data.Read']});acct=r.account;onAuth();}
+  try{const r=await mApp.loginPopup({scopes:['openid','profile','email']});acct=r.account;onAuth();}
   catch(e){alert('Sign-in failed: '+e.message);}
 }
 async function tok(scope){
