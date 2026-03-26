@@ -37,6 +37,18 @@ Sign in with your ABS Azure AD account (`@eagle.org`). The dashboard uses MSAL.j
 
 ---
 
+## Subscription Filter
+
+After sign-in, a **Subscriptions** dropdown appears in the top bar. It dynamically loads all subscriptions the signed-in user has access to.
+
+- **Default:** All subscriptions selected
+- **Search** by subscription name or ID
+- **Select All / Clear All / Apply** to scope all ARG queries to specific subscriptions
+- Log Analytics queries are unaffected - they are always scoped to `law-security-prod`
+- Changing the selection clears the cache and re-runs the active panel
+
+---
+
 ## Data Sources
 
 | Source | Table(s) | Notes |
@@ -104,11 +116,12 @@ const CFG = {
   tenantId:     'd810b06c-d004-4d52-b0aa-4f3581ee7020',   // ABS Tenant ID
   workspaceId:  '7123fe2d-f76e-4027-8784-f9b6eec61ba8',   // law-security-prod GUID
   wsResourceId: '/subscriptions/7ca56f5e-.../workspaces/law-security-prod',
-  subscriptions: ['7ca56f5e-a44c-4311-a34a-0729be8f5a6e'],
 };
 ```
 
 If the App Registration is recreated or the workspace changes, update these values and re-upload.
+
+> Subscriptions are loaded dynamically at runtime based on the signed-in user's access. No subscription IDs need to be hardcoded.
 
 ---
 
