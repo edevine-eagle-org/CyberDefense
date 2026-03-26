@@ -204,7 +204,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 </script>
 
 <div id="topbar">
-  <div class="logo"><img src="./abs-logo-blue.png" alt="ABS" style="height:28px;vertical-align:middle;margin-right:8px;">CYBERDEFENSE</div>
+  <div class="logo"><img src="./abs-logo-blue.png" alt="ABS" style="height:34px;vertical-align:middle;margin-right:10px;"><span style="color:var(--cyan);letter-spacing:3px;">CYBERDEFENSE</span></div>
   <div class="vsep"></div>
   <div class="tmeta"><b>Tenant:</b> American Bureau of Shipping &nbsp;|&nbsp; <b>Designed and Built by:</b> Eddie Devine, SIEM Engineer - ABS CyberDefense</div>
   <div class="tright">
@@ -268,7 +268,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 
 <div id="lscr">
   <div class="lcard">
-    <img src="./abs-logo-blue.png" alt="ABS" style="height:52px;margin-bottom:8px;">
+    <img src="./abs-logo-blue.png" alt="ABS" style="height:64px;margin-bottom:12px;">
     <div class="lsub">CyberDefense · Security Dashboard</div>
     <div class="ldesc">Live security data from Microsoft Sentinel, Defender for Endpoint, Azure Resource Graph, and Log Analytics. Sign in with your ABS Azure AD account to load live data.</div>
     <button class="lcta" onclick="signIn()">Sign In with Azure AD</button>
@@ -617,7 +617,10 @@ d5:[
 | extend EntryPoints = array_length(properties.entryPointsIds)
 | extend TargetName = tostring(split(tostring(properties.target.resourceId),'/')[-1])
 | extend AttackPathType = tostring(properties.attackPathType)
-| project AttackPathName, RiskLevel, EntryPoints, TargetName, AttackPathType, SubscriptionId=subscriptionId
+| extend AttackPathId = tostring(split(id,'/attackPaths/')[1])
+| extend EncodedName = url_encode(AttackPathName)
+| extend DefenderLink = strcat('https://portal.azure.com/#view/Microsoft_Azure_Security/AttackPathType.ReactView/attackPathType/',AttackPathType,'/attackPathTypeName/',EncodedName,'/attackPathId/',AttackPathId)
+| project AttackPathName, RiskLevel, EntryPoints, TargetName, DefenderLink, SubscriptionId=subscriptionId
 | order by RiskLevel asc | take 1000`},
   {label:'AKS Security',type:'arg',query:`securityresources
 | where type == 'microsoft.security/assessments'
@@ -683,6 +686,7 @@ d5:[
 | extend MTTD=datetime_diff('minute',FirstActivityTime,CreatedTime)
 | extend MTTR=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
 | summarize TotalIncidents=count(), AvgMTTD_min=round(avg(MTTD),0), AvgMTTR_min=round(avg(MTTR),0), Closed=countif(Status=='Closed'), Open=countif(Status!='Closed') by Severity
+| extend SentinelLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
 | order by Severity asc`},
   {label:'Quick Wins',type:'arg',query:`securityresources
 | where type=='microsoft.security/assessments'
@@ -697,7 +701,20 @@ d5:[
 | summarize AffectedResources=count(), RemediationDesc=take_any(RemediationDesc), DefenderLink=take_any(DefenderLink) by DisplayName, Severity=tostring(properties.metadata.severity), Category
 | extend Effort=case(DisplayName has_any ('HTTPS','TLS','secure transfer'),'< 2 min',DisplayName has_any ('soft delete','purge protection'),'< 2 min',DisplayName has_any ('public access','firewall'),'< 5 min',DisplayName has_any ('diagnostic','monitoring','audit'),'< 5 min','< 15 min')
 | order by AffectedResources desc, Severity asc | take 200`},
-  {label:'Remediation Guide',type:'static',html:`
+  {label:'Remediation Guidance',type:'arg',query:`securityresources
+| where type == 'microsoft.security/assessments'
+| where properties.status.code == 'Unhealthy'
+| extend DisplayName = tostring(properties.displayName)
+| extend Severity = tostring(properties.metadata.severity)
+| extend Category = tostring(properties.metadata.categories[0])
+| extend ResourceType = tostring(properties.resourceDetails.resourceType)
+| extend RemediationDesc = tostring(properties.metadata.remediationDescription)
+| extend AssessmentKey = tostring(split(id,'/assessments/')[1])
+| extend DefenderLink = strcat('https://portal.azure.com/#blade/Microsoft_Azure_Security/RecommendationsBlade/assessmentKey/',AssessmentKey)
+| summarize AffectedResources=count(), RemediationDesc=take_any(RemediationDesc), DefenderLink=take_any(DefenderLink) by DisplayName, Severity, Category, ResourceType
+| order by Severity asc, AffectedResources desc
+| take 500`},
+  {label:'CLI Reference',type:'static',html:`
     <h3>Storage Accounts</h3>
     <pre><code>az storage account update --name &lt;n&gt; --resource-group &lt;rg&gt; --https-only true
 az storage account update --name &lt;n&gt; --resource-group &lt;rg&gt; --min-tls-version TLS1_2
@@ -723,7 +740,6 @@ az network nsg rule delete -g &lt;rg&gt; --nsg-name &lt;nsg&gt; --name &lt;rule&
   --query "[].{Principal:principalName,Type:principalType}"
 az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscription &lt;sub&gt;</code></pre>
     <div class="note">Use the <strong>Quick Wins</strong> tab to identify high/critical controls fixable with a single config change. Sort by AffectedResources for highest blast radius per fix.</div>`},
-,
   {label:'Secure Score',type:'arg',query:`securityresources
 | where type == 'microsoft.security/securescores'
 | extend DisplayName = tostring(properties.displayName)
@@ -1329,6 +1345,7 @@ d7:[
 | extend MTTD_min=datetime_diff('minute',FirstActivityTime,CreatedTime)
 | extend MTTR_min=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
 | summarize TotalIncidents=count(), AvgMTTD_min=round(avg(MTTD_min),0), AvgMTTR_min=round(avg(MTTR_min),0), Closed=countif(Status=='Closed'), Active=countif(Status=='Active') by Severity
+| extend SentinelLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
 | order by Severity asc`},
   {label:'Alert Volume',type:'la',viz:'timechart',query:`SecurityAlert
 | where TimeGenerated>=ago(30d)
