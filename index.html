@@ -513,6 +513,7 @@ const KDEFS={
 async function loadKPIs(id){
   const strip=document.getElementById('kpi-'+id);
   const defs=KDEFS[id];
+  if(!strip||!defs)return;
   strip.innerHTML=defs.map((d,i)=>`<div class="kcard ${d.c}"><div class="klbl">${d.l}</div><div class="kval ldg" id="kv-${id}-${i}">…</div></div>`).join('');
   defs.forEach(async(d,i)=>{
     try{
