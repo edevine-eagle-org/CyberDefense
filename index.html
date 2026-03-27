@@ -254,6 +254,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   <span class="mtab" onclick="switchD('d10',this)">🐙 GitHub / DevOps</span>
   <span class="mtab" onclick="switchD('d11',this)">📁 SharePoint</span>
   <span class="mtab" onclick="switchD('d12',this)">🔐 Saviynt</span>
+  <span class="mtab" onclick="switchD('d13',this)">☁️ OCI</span>
 </div>
 
 <div id="content">
@@ -264,6 +265,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   <div class="dsect" id="ds-d3"><div class="kstrip" id="kpi-d3"></div><div class="stbar-wrap"><div class="stbar" id="st-d3"></div></div><div id="pn-d3"></div></div>
   <div class="dsect" id="ds-d4"><div class="kstrip" id="kpi-d4"></div><div class="stbar-wrap"><div class="stbar" id="st-d4"></div></div><div id="pn-d4"></div></div>
   <div class="dsect" id="ds-d8"><div class="kstrip" id="kpi-d8"></div><div class="stbar-wrap"><div class="stbar" id="st-d8"></div></div><div id="pn-d8"></div></div>
+  <div class="dsect" id="ds-d13"><div class="kstrip" id="kpi-d13"></div><div class="stbar-wrap"><div class="stbar" id="st-d13"></div></div><div id="pn-d13"></div></div>
   <div class="dsect" id="ds-d12"><div class="kstrip" id="kpi-d12"></div><div class="stbar-wrap"><div class="stbar" id="st-d12"></div></div><div id="pn-d12"></div></div>
   <div class="dsect" id="ds-d11"><div class="kstrip" id="kpi-d11"></div><div class="stbar-wrap"><div class="stbar" id="st-d11"></div></div><div id="pn-d11"></div></div>
   <div class="dsect" id="ds-d10"><div class="kstrip" id="kpi-d10"></div><div class="stbar-wrap"><div class="stbar" id="st-d10"></div></div><div id="pn-d10"></div></div>
@@ -535,6 +537,14 @@ const KDEFS={
     {l:'HTTPS Not Enforced',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|where properties.httpsOnly!=true|summarize Count=count()`},k:'Count'},
     {l:'Function Apps',c:'kc-gn',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|where kind has 'functionapp'|summarize Count=count()`},k:'Count'},
     {l:'APIM Services',c:'kc-or',q:{t:'arg',q:`Resources|where type=='microsoft.apimanagement/service'|summarize Count=count()`},k:'Count'},
+  ],
+  d13:[
+    {l:'Total Events (7d)',c:'kc-cy',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
+    {l:'Identity Events',c:'kc-rd',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'identity'|summarize Count=count()`},k:'Count'},
+    {l:'Sign-ins',c:'kc-or',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'SignOn' or EventType has 'Login'|summarize Count=count()`},k:'Count'},
+    {l:'K8s Events',c:'kc-bl',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType startswith 'io.k8s' or EventType startswith 'core.v1' or EventType startswith 'batch.v1' or EventType startswith 'apps.v1'|summarize Count=count()`},k:'Count'},
+    {l:'Integration Events',c:'kc-gn',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'integration'|summarize Count=count()`},k:'Count'},
+    {l:'DB Events',c:'kc-yw',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'Database' or EventType has 'database'|summarize Count=count()`},k:'Count'},
   ],
   d12:[
     {l:'Total Events (30d)',c:'kc-cy',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|summarize Count=count()`},k:'Count'},
@@ -1308,6 +1318,135 @@ d8:[
 ],
 
 
+
+d13:[
+  {label:'Overview',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| extend Category = case(
+    EventType startswith 'io.k8s' or EventType startswith 'core.v1' or EventType startswith 'batch.v1' or EventType startswith 'apps.v1','Kubernetes',
+    EventType has 'integration','Integration',
+    EventType has 'IdentitySignOn' or EventType has 'identityControlPlane','Identity',
+    EventType has 'Database' or EventType has 'database','Database',
+    EventType has 'virtualNetwork','Networking',
+    EventType has 'computeApi','Compute',
+    EventType has 'objectstorage','Object Storage',
+    EventType has 'KeyManagement','Key Management',
+    'Other')
+| summarize Count=count() by bin(TimeGenerated,1d), Category
+| extend PortalLink='https://cloud.oracle.com/loganalytics'
+| order by TimeGenerated asc`},
+
+  {label:'Identity & Sign-ins',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| where EventType has 'IdentitySignOn' or EventType has 'identityControlPlane'
+| extend data_parsed = todynamic(data)
+| extend ActionName = tostring(data_parsed.actionName)
+| extend EventDetail = EventMessage
+| extend CompartmentId = oracle_compartmentid_s
+| extend PortalLink='https://cloud.oracle.com/identity/users'
+| project TimeGenerated, EventType, ActionName, EventDetail, source_s, CompartmentId, PortalLink
+| order by TimeGenerated desc | take 500`},
+
+  {label:'User & Group Changes',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| where EventType in (
+    'com.oraclecloud.identityControlPlane.CreateUser',
+    'com.oraclecloud.identityControlPlane.UpdateUser',
+    'com.oraclecloud.identityControlPlane.CreateGroup',
+    'com.oraclecloud.identityControlPlane.UpdateGroup',
+    'com.oraclecloud.identityControlPlane.AddUserToGroup',
+    'com.oraclecloud.identityControlPlane.RemoveUserFromGroup',
+    'com.oraclecloud.identityControlPlane.CreateGrant',
+    'com.oraclecloud.identityControlPlane.AddApprole',
+    'com.oraclecloud.identityControlPlane.CreateOrResetPassword',
+    'com.oraclecloud.identityControlPlane.CreateOrResetMyPasswordRequest',
+    'com.oraclecloud.IdentityProvisioning.UpdateUserUIPassword')
+| extend Action = tostring(split(EventType,'.')[-1])
+| extend PortalLink='https://cloud.oracle.com/identity/users'
+| project TimeGenerated, EventType, Action, EventMessage, source_s, oracle_compartmentid_s, PortalLink
+| order by TimeGenerated desc | take 500`},
+
+  {label:'Kubernetes',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| where EventType startswith 'io.k8s' or EventType startswith 'core.v1' or EventType startswith 'batch.v1' or EventType startswith 'apps.v1'
+| extend Resource = tostring(split(EventType,'.')[array_length(split(EventType,'.'))-2])
+| extend Action = tostring(split(EventType,'.')[-1])
+| summarize Count=count(), LastSeen=max(TimeGenerated) by EventType, Resource, Action
+| extend PortalLink='https://cloud.oracle.com/containers/clusters'
+| order by Count desc | take 200`},
+
+  {label:'Integration Activity',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| where EventType has 'integration'
+| extend data_parsed = todynamic(data)
+| extend actionType = tostring(data_parsed.actionType)
+| extend actionName = tostring(data_parsed.actionName)
+| summarize Count=count(), LastSeen=max(TimeGenerated) by actionType, actionName
+| extend PortalLink='https://cloud.oracle.com/oic'
+| order by Count desc | take 200`},
+
+  {label:'Networking',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| where EventType has 'virtualNetwork' or EventType has 'natgateway' or EventType has 'servicegateway' or EventType has 'networkFirewall' or EventType has 'OraLB'
+| extend Action = tostring(split(EventType,'.')[-1])
+| extend Service = case(
+    EventType has 'virtualNetwork','Virtual Network',
+    EventType has 'natgateway','NAT Gateway',
+    EventType has 'servicegateway','Service Gateway',
+    EventType has 'networkFirewall','Network Firewall',
+    EventType has 'OraLB','Load Balancer','Other')
+| summarize Count=count(), LastSeen=max(TimeGenerated) by Service, Action, EventType
+| extend PortalLink='https://cloud.oracle.com/networking/vcns'
+| order by Count desc | take 200`},
+
+  {label:'Compute & Storage',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| where EventType has 'computeApi' or EventType has 'BlockVolumes' or EventType has 'objectstorage' or EventType has 'artifacts'
+| extend Action = tostring(split(EventType,'.')[-1])
+| extend Service = case(
+    EventType has 'computeApi','Compute',
+    EventType has 'BlockVolumes','Block Volumes',
+    EventType has 'objectstorage','Object Storage',
+    EventType has 'artifacts','Container Registry','Other')
+| summarize Count=count(), LastSeen=max(TimeGenerated) by Service, Action
+| extend PortalLink='https://cloud.oracle.com/compute/instances'
+| order by Count desc | take 200`},
+
+  {label:'Database',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| where EventType has 'Database' or EventType has 'database' or EventType has 'DataSafe' or EventType has 'postgresql' or EventType has 'Mysqlaas'
+| extend Action = tostring(split(EventType,'.')[-1])
+| extend DBType = case(
+    EventType has 'Autonomous','Autonomous DB',
+    EventType has 'postgresql','PostgreSQL',
+    EventType has 'Mysqlaas','MySQL',
+    EventType has 'DataSafe','Data Safe',
+    EventType has 'DbSystem','DB System','Other')
+| summarize Count=count(), LastSeen=max(TimeGenerated) by DBType, Action, EventType
+| extend PortalLink='https://cloud.oracle.com/db/autonomous'
+| order by Count desc | take 200`},
+
+  {label:'Key Management & Secrets',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| where EventType has 'KeyManagement' or EventType has 'OciCertificates'
+| extend Action = tostring(split(EventType,'.')[-1])
+| extend Service = case(
+    EventType has 'KeyManagement','Key Management',
+    EventType has 'OciCertificates','Certificates','Other')
+| summarize Count=count(), LastSeen=max(TimeGenerated) by Service, Action, EventType
+| extend PortalLink='https://cloud.oracle.com/security/kms/vaults'
+| order by Count desc | take 200`},
+
+  {label:'All Events',type:'la',query:`OCI_LogsV2_CL
+| where TimeGenerated {TimeRange}
+| extend data_parsed = todynamic(data)
+| extend actionType = tostring(data_parsed.actionType)
+| extend actionName = tostring(data_parsed.actionName)
+| extend CompartmentId = oracle_compartmentid_s
+| extend PortalLink='https://cloud.oracle.com/loganalytics'
+| project TimeGenerated, EventType, EventMessage, actionType, actionName, CompartmentId, source_s, PortalLink
+| order by TimeGenerated desc | take 1000`},
+],
 d12:[
   {label:'Audit Overview',type:'la',query:`SaviyntAuditLogs_CL
 | where TimeGenerated {TimeRange}
@@ -1881,6 +2020,7 @@ function onAuth(){
   buildDash('d10',PANELS.d10);
   buildDash('d11',PANELS.d11);
   buildDash('d12',PANELS.d12);
+  buildDash('d13',PANELS.d13);
   loadKPIs('d5');
   loadSubscriptions();
 }
