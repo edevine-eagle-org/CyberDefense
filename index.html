@@ -250,7 +250,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 </script>
 
 <div id="topbar">
-  <div class="logo">ABS<em> · </em>CYBERDEFENSE</div>
+  <div class="logo"></div>
   <div class="vsep"></div>
   <div class="tmeta"><b>Tenant:</b> American Bureau of Shipping &nbsp;|&nbsp; <b>Designed and Built by:</b> Eddie Devine, SIEM Engineer - ABS CyberDefense</div>
   <div class="tright">
@@ -666,10 +666,14 @@ function buildDash(id,panels){
     }
     cont.appendChild(div);
   });
-  // auto-load all panels in background
+  // auto-load all panels with stagger - only if this dash is active
   if(acct){
     panels.forEach((p,i)=>{
-      if(p.type!=='static') setTimeout(()=>execP(p,`${id}-${i}`,false), i*120);
+      if(p.type!=='static') setTimeout(()=>{
+        if(document.getElementById('ds-'+id)&&document.getElementById('ds-'+id).classList.contains('act')){
+          execP(p,`${id}-${i}`,false);
+        }
+      }, i*200);
     });
   }
 }
@@ -1079,9 +1083,8 @@ d1:[
 | extend PrincipalType=tostring(properties.principalType)
 | extend Scope=tostring(properties.scope)
 | extend ScopeLevel=case(Scope matches regex '^/providers/Microsoft.Management','Management Group',Scope matches regex '^/subscriptions/[^/]+$','Subscription',Scope matches regex '^/subscriptions/[^/]+/resourceGroups/[^/]+$','Resource Group',Scope=='/','Tenant Root','Resource')
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade'
 | summarize Count=count() by PrincipalType,ScopeLevel
-| extend PortalLink=any(PortalLink)
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade'
 | order by PrincipalType asc,ScopeLevel asc`},
   {label:'Privileged Roles',type:'arg',query:`AuthorizationResources
 | where type=='microsoft.authorization/roleassignments'
@@ -2143,19 +2146,21 @@ PANELS.def_exec=[
 ];
 
 PANELS.arch_exec=[
-  {label:'Posture Overview',type:'arg',query:`union
-  (securityresources|where type=='microsoft.security/securescores'|extend Value=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Value),1)|extend Label='Avg Secure Score (%)', Value=Score|project Label,Value),
-  (securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Value=count()|extend Label='Critical Controls'),
-  (securityresources|where type=='microsoft.security/attackpaths'|summarize Value=count()|extend Label='Attack Paths'),
-  (Resources|where type=='microsoft.network/publicipaddresses'|summarize Value=count()|extend Label='Public IPs Exposed')
-| project Label, Value
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'`},
-  {label:'Infrastructure Risk',type:'arg',query:`union
-  (Resources|where type=='microsoft.compute/virtualmachines'|extend VMId=tolower(id)|join kind=leftouter(Resources|where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'|where properties.workloadType=='VM'|extend SourceVMId=tolower(tostring(properties.sourceResourceId))|project SourceVMId)on $left.VMId==$right.SourceVMId|where isempty(SourceVMId)|summarize Value=count()|extend Label='VMs Without Backup'),
-  (Resources|where type=='microsoft.storage/storageaccounts'|where properties.allowBlobPublicAccess==true|summarize Value=count()|extend Label='Storage with Public Blob Access'),
-  (Resources|where type=='microsoft.web/sites'|where properties.httpsOnly!=true|summarize Value=count()|extend Label='App Services Without HTTPS'),
-  (Resources|where(type=='microsoft.compute/disks'and properties.diskState=='Unattached')or(type=='microsoft.network/publicipaddresses'and isnull(properties.ipConfiguration))|summarize Value=count()|extend Label='Orphaned Resources')
-| project Label, Value
+  {label:'Posture Overview',type:'arg',query:`securityresources
+| where type in ('microsoft.security/securescores','microsoft.security/assessments','microsoft.security/attackpaths')
+| extend ScorePct = iff(type=='microsoft.security/securescores', round(todouble(properties.score.percentage)*100,1), real(null))
+| extend IsUnhealthyHigh = (type=='microsoft.security/assessments' and properties.status.code=='Unhealthy' and properties.metadata.severity in ('High','Critical'))
+| extend IsAttackPath = type=='microsoft.security/attackpaths'
+| summarize AvgSecureScore=round(avg(ScorePct),1), CriticalControls=countif(IsUnhealthyHigh), AttackPaths=countif(IsAttackPath)
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
+| project AvgSecureScore, CriticalControls, AttackPaths, PortalLink`},
+  {label:'Infrastructure Risk',type:'arg',query:`Resources
+| where type in ('microsoft.compute/virtualmachines','microsoft.storage/storageaccounts','microsoft.web/sites','microsoft.compute/disks','microsoft.network/publicipaddresses')
+| extend IsVM = type=='microsoft.compute/virtualmachines'
+| extend IsPublicStorage = (type=='microsoft.storage/storageaccounts' and properties.allowBlobPublicAccess==true)
+| extend IsNoHttps = (type=='microsoft.web/sites' and properties.httpsOnly!=true)
+| extend IsOrphaned = ((type=='microsoft.compute/disks' and properties.diskState=='Unattached') or (type=='microsoft.network/publicipaddresses' and isnull(properties.ipConfiguration)))
+| summarize TotalVMs=countif(IsVM), PublicStorage=countif(IsPublicStorage), NoHttpsApps=countif(IsNoHttps), OrphanedResources=countif(IsOrphaned)
 | extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'`},
   {label:'Compliance Trend',type:'arg',query:`securityresources
 | where type=='microsoft.security/assessments'
@@ -2177,12 +2182,10 @@ PANELS.arch_exec=[
 ];
 
 PANELS.grc_exec=[
-  {label:'Governance Overview',type:'arg',query:`union
-  (PolicyResources|where type=~'microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Value=count()|extend Label='Policy Violations'),
-  (ResourceContainers|where type=='microsoft.resources/subscriptions'|extend MgChain=array_length(properties.managementGroupAncestorsChain)|where MgChain==0 or isnull(MgChain)|summarize Value=count()|extend Label='Shadow Subscriptions'),
-  (Resources|where type!in('microsoft.resources/subscriptions','microsoft.resources/resourcegroups')|extend TagCount=array_length(bag_keys(tags))|where TagCount==0|summarize Value=count()|extend Label='Untagged Resources'),
-  (AuthorizationResources|where type=='microsoft.authorization/roleassignments'|where properties.principalType in('Guest','ForeignGroup')|summarize Value=count()|extend Label='Guest Principal Assignments')
-| project Label, Value
+  {label:'Governance Overview',type:'arg',query:`policyresources
+| where type=~'microsoft.policyinsights/policystates'
+| summarize PolicyViolations=countif(properties.complianceState=='NonCompliant'), TotalPolicies=count()
+| extend CompliancePct=round(toreal(TotalPolicies-PolicyViolations)/TotalPolicies*100,1)
 | extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'`},
   {label:'Access Risk',type:'arg',query:`AuthorizationResources
 | where type=='microsoft.authorization/roleassignments'
