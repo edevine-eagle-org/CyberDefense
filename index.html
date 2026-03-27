@@ -269,7 +269,7 @@ a.pl:hover{background:var(--cyan-dim);border-color:var(--cyan);}
 .scont .note{background:var(--yellow-dim);border-left:3px solid var(--yellow);padding:8px 12px;border-radius:2px;margin:10px 0;font-size:12px;color:var(--txt2);}
 
 /* LOGIN */
-#lscr{display:flex;align-items:center;justify-content:center;flex:1;min-height:0;padding:40px;flex-direction:column;}
+#lscr{display:flex;align-items:center;justify-content:center;position:fixed;inset:0;padding:40px;flex-direction:column;background:var(--bg);z-index:400;}
 .lcard{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:48px 52px;max-width:440px;width:100%;text-align:center;position:relative;overflow:hidden;}
 .lcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--cyan),transparent);}
 .llogo{font-family:var(--fh);font-size:30px;font-weight:700;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;margin-bottom:4px;}
@@ -299,6 +299,17 @@ const CFG={
 const NCFG=CFG.clientId==='YOUR_CLIENT_ID_HERE';
 const TR_ISO={'1d':'P1D','7d':'P7D','14d':'P14D','30d':'P30D'};
 const TR_AGO={'1d':'1d','7d':'7d','14d':'14d','30d':'30d'};
+function copyDashLink(){
+  const url='https://edevine-eagle-org.github.io/CyberDefense/';
+  navigator.clipboard.writeText(url).then(()=>{
+    const btn=document.getElementById('copyLinkBtn');
+    const orig=btn.textContent;
+    btn.textContent='✓ Copied!';
+    btn.style.color='var(--green)';
+    btn.style.borderColor='var(--green)';
+    setTimeout(()=>{btn.textContent=orig;btn.style.color='';btn.style.borderColor='';},2000);
+  });
+}
 function gtr(){return document.getElementById('trSel').value;}
 function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 </script>
@@ -307,6 +318,8 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   <div class="logo"></div>
   <div class="vsep"></div>
   <div class="tmeta"><b>Tenant:</b> American Bureau of Shipping &nbsp;|&nbsp; <b>Designed and Built by:</b> Eddie Devine, SIEM Engineer - ABS CyberDefense</div>
+  <div class="vsep"></div>
+  <button class="tbbtn" id="copyLinkBtn" onclick="copyDashLink()" title="Copy dashboard link">🔗 edevine-eagle-org.github.io/CyberDefense</button>
   <div class="tright">
     <select id="trSel" onchange="onTRChange()">
       <option value="1d">Last 24h</option>
