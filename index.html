@@ -98,6 +98,52 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .stbar-wrap{background:var(--bg3);border-bottom:1px solid var(--border);}
 .stbar{padding:4px 20px;display:flex;flex-wrap:wrap;gap:0;}
 .stab{font-family:var(--fm);font-size:10.5px;color:var(--txt2);padding:7px 11px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;flex-shrink:0;}
+/* ── DEPT NAV ── */
+#deptBar{background:var(--bg);border-bottom:2px solid var(--border);padding:0 20px;display:none;gap:0;}
+.dtab{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);padding:10px 20px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.15s;user-select:none;}
+.dtab:hover{color:var(--txt);}
+.dtab.act.home{color:var(--cy);border-bottom-color:var(--cy);}
+.dtab.act.defense{color:#ff6b6b;border-bottom-color:#ff6b6b;}
+.dtab.act.arch{color:#ffa500;border-bottom-color:#ffa500;}
+.dtab.act.grc{color:#51cf66;border-bottom-color:#51cf66;}
+/* ── EXEC HOME ── */
+#homeView{display:none;flex-direction:column;gap:20px;padding:20px 24px;}
+.home-hdr{text-align:center;padding:8px 0;}
+.home-hdr h2{font-family:var(--fh);font-size:22px;color:var(--cy);letter-spacing:4px;text-transform:uppercase;margin:0 0 4px;}
+.home-hdr p{font-family:var(--fm);font-size:11px;color:var(--txt2);margin:0;}
+.dept-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.dept-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.dept-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.dept-card.defense::before{background:#ff6b6b;}
+.dept-card.arch::before{background:#ffa500;}
+.dept-card.grc::before{background:#51cf66;}
+.dept-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,0.3);}
+.dc-hdr{font-family:var(--fh);font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.dept-card.defense .dc-hdr{color:#ff6b6b;}
+.dept-card.arch .dc-hdr{color:#ffa500;}
+.dept-card.grc .dc-hdr{color:#51cf66;}
+.dc-kpis{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;min-height:80px;}
+.dc-kpi{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
+.dc-kpi:last-child{border-bottom:none;}
+.dc-kpi-lbl{font-family:var(--fm);font-size:10.5px;color:var(--txt2);}
+.dc-kpi-val{font-family:var(--fh);font-size:15px;font-weight:700;color:var(--cy);}
+.dc-kpi-val.rd{color:var(--rd);}
+.dc-kpi-val.or{color:var(--or);}
+.dc-kpi-val.gn{color:#51cf66;}
+.dc-btn{width:100%;background:transparent;border:1px solid var(--border2);color:var(--txt2);font-family:var(--fm);font-size:10.5px;padding:6px;border-radius:var(--r);cursor:pointer;transition:all 0.15s;letter-spacing:0.5px;}
+.dept-card.defense .dc-btn:hover{border-color:#ff6b6b;color:#ff6b6b;}
+.dept-card.arch .dc-btn:hover{border-color:#ffa500;color:#ffa500;}
+.dept-card.grc .dc-btn:hover{border-color:#51cf66;color:#51cf66;}
+.home-incidents{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
+.hi-title{font-family:var(--fm);font-size:10px;color:var(--txt2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.hi-row{display:grid;grid-template-columns:10px 1fr auto auto;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-family:var(--fm);font-size:11px;color:var(--txt);}
+.hi-row:last-child{border-bottom:none;}
+.hi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.hi-dot.High{background:#ff6b6b;}.hi-dot.Critical{background:#ff4444;}
+.hi-dot.Medium{background:var(--or);}.hi-dot.Low{background:var(--yw);}
+.hi-dot.Informational{background:var(--bl);}
+.hi-sev{font-size:10px;color:var(--txt3);}
+.hi-time{font-size:10px;color:var(--txt3);white-space:nowrap;}
 .stab:hover{color:var(--txt);}
 .stab.act{color:var(--cyan);border-bottom-color:var(--cyan);}
 
@@ -237,27 +283,58 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 
 <div id="cfgwarn">⚠ &nbsp;App Registration pending - authentication will be enabled once the Client ID is received.</div>
 
+<div id="deptBar">
+  <span class="dtab home act" onclick="switchDept('home',this)">🏠 Home</span>
+  <span class="dtab defense" onclick="switchDept('defense',this)">🛡️ CyberDefense</span>
+  <span class="dtab arch" onclick="switchDept('arch',this)">🏗️ CyberArchitecture</span>
+  <span class="dtab grc" onclick="switchDept('grc',this)">📋 CyberGRC</span>
+</div>
+<div id="homeView">
+  <div class="home-hdr">
+    <h2>ABS Cyber Security</h2>
+    <p>Tenant: American Bureau of Shipping &nbsp;|&nbsp; Designed and Built by: Eddie Devine, SIEM Engineer - ABS CyberDefense</p>
+  </div>
+  <div class="dept-cards">
+    <div class="dept-card defense" onclick="switchDept('defense',document.querySelectorAll('.dtab')[1])">
+      <div class="dc-hdr">🛡️ CyberDefense</div>
+      <div class="dc-kpis" id="hkpi-defense">
+        <div class="dc-kpi"><span class="dc-kpi-lbl">Active Incidents</span><span class="dc-kpi-val rd ldg" id="hkv-def-0">…</span></div>
+        <div class="dc-kpi"><span class="dc-kpi-lbl">Avg MTTD (min)</span><span class="dc-kpi-val or ldg" id="hkv-def-1">…</span></div>
+        <div class="dc-kpi"><span class="dc-kpi-lbl">Sign-in Failures (7d)</span><span class="dc-kpi-val ldg" id="hkv-def-2">…</span></div>
+      </div>
+      <button class="dc-btn">Open CyberDefense Dashboard →</button>
+    </div>
+    <div class="dept-card arch" onclick="switchDept('arch',document.querySelectorAll('.dtab')[2])">
+      <div class="dc-hdr">🏗️ CyberArchitecture</div>
+      <div class="dc-kpis" id="hkpi-arch">
+        <div class="dc-kpi"><span class="dc-kpi-lbl">Secure Score (%)</span><span class="dc-kpi-val ldg" id="hkv-arch-0">…</span></div>
+        <div class="dc-kpi"><span class="dc-kpi-lbl">Critical Controls</span><span class="dc-kpi-val rd ldg" id="hkv-arch-1">…</span></div>
+        <div class="dc-kpi"><span class="dc-kpi-lbl">Attack Paths</span><span class="dc-kpi-val or ldg" id="hkv-arch-2">…</span></div>
+      </div>
+      <button class="dc-btn">Open CyberArchitecture Dashboard →</button>
+    </div>
+    <div class="dept-card grc" onclick="switchDept('grc',document.querySelectorAll('.dtab')[3])">
+      <div class="dc-hdr">📋 CyberGRC</div>
+      <div class="dc-kpis" id="hkpi-grc">
+        <div class="dc-kpi"><span class="dc-kpi-lbl">Policy Violations</span><span class="dc-kpi-val rd ldg" id="hkv-grc-0">…</span></div>
+        <div class="dc-kpi"><span class="dc-kpi-lbl">Privileged Roles</span><span class="dc-kpi-val or ldg" id="hkv-grc-1">…</span></div>
+        <div class="dc-kpi"><span class="dc-kpi-lbl">Guest Principals</span><span class="dc-kpi-val ldg" id="hkv-grc-2">…</span></div>
+      </div>
+      <button class="dc-btn">Open CyberGRC Dashboard →</button>
+    </div>
+  </div>
+  <div class="home-incidents">
+    <div class="hi-title">🚨 Recent Sentinel Incidents</div>
+    <div id="home-incidents-list"><div class="sbox sk" style="padding:12px">Loading...</div></div>
+  </div>
+</div>
 <div id="pbanner">
   <span class="ppill">ABS IMS Security</span>
   <span style="color:var(--txt2)">Security Posture · Sentinel Health · MDE Coverage · Tenant &amp; Governance · Networking · Compute · Data &amp; Storage · AI &amp; Apps · GitHub / DevOps</span>
 </div>
 
-<div id="mainTabs">
-  <span class="mtab act" onclick="switchD('d5',this)">🛡️ Security Posture</span>
-  <span class="mtab"     onclick="switchD('d7',this)">🔍 Sentinel Health</span>
-  <span class="mtab"     onclick="switchD('d6',this)">🖥️ MDE Coverage</span>
-  <span class="mtab" onclick="switchD('d1',this)">🏢 Tenant &amp; Governance</span>
-  <span class="mtab" onclick="switchD('d2',this)">🌐 Networking</span>
-  <span class="mtab" onclick="switchD('d3',this)">💻 Compute</span>
-  <span class="mtab" onclick="switchD('d4',this)">🗄️ Data &amp; Storage</span>
-  <span class="mtab" onclick="switchD('d8',this)">🤖 AI &amp; Apps</span>
-  <span class="mtab" onclick="switchD('d10',this)">🐙 GitHub / DevOps</span>
-  <span class="mtab" onclick="switchD('d11',this)">📁 SharePoint</span>
-  <span class="mtab" onclick="switchD('d12',this)">🔐 Saviynt</span>
-  <span class="mtab" onclick="switchD('d13',this)">☁️ OCI</span>
-</div>
-
-<div id="content">
+<div id="mainTabs" style="display:none"></div>
+  <div id="content" style="display:none">
   <div class="dsect act" id="ds-d5"><div class="kstrip" id="kpi-d5"></div><div class="stbar-wrap"><div class="stbar" id="st-d5"></div></div><div id="pn-d5"></div></div>
   <div class="dsect"     id="ds-d7"><div class="kstrip" id="kpi-d7"></div><div class="stbar-wrap"><div class="stbar" id="st-d7"></div></div><div id="pn-d7"></div></div>
   <div class="dsect" id="ds-d1"><div class="kstrip" id="kpi-d1"></div><div class="stbar-wrap"><div class="stbar" id="st-d1"></div></div><div id="pn-d1"></div></div>
@@ -431,19 +508,138 @@ function refreshAct(){
   delete PC[cid];
   execP(PANELS[aDash][+idx],cid,true);
 }
+
+// ── EXEC HOME ─────────────────────────────────────────────────
+async function loadHomeKPIs(){
+  const defKPIs=[
+    {id:'hkv-def-0',t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count()`,k:'Count'},
+    {id:'hkv-def-1',t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|extend MTTD=datetime_diff('minute',FirstActivityTime,CreatedTime)|summarize Count=round(avg(MTTD),0)`,k:'Count'},
+    {id:'hkv-def-2',t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`,k:'Count'},
+    {id:'hkv-arch-0',t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`,k:'Score'},
+    {id:'hkv-arch-1',t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`,k:'Count'},
+    {id:'hkv-arch-2',t:'arg',q:`securityresources|where type=='microsoft.security/attackpaths'|summarize Count=count()`,k:'Count'},
+    {id:'hkv-grc-0',t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Count=count()`,k:'Count'},
+    {id:'hkv-grc-1',t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|extend RoleId=tolower(tostring(properties.roleDefinitionId))|where RoleId has_any ('8e3af657','b24988ac','18d7d88d','fb1c8493')|summarize Count=count()`,k:'Count'},
+    {id:'hkv-grc-2',t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|where properties.principalType in ('Guest','ForeignGroup')|summarize Count=count()`,k:'Count'},
+  ];
+  defKPIs.forEach(async d=>{
+    try{
+      const rows=d.t==='arg'?await runARG(d.q):await runLA(d.q);
+      const v=rows?.[0]?.[d.k];
+      const el=document.getElementById(d.id);
+      if(el){el.textContent=v!==undefined?Number(v).toLocaleString():'—';el.classList.remove('ldg');}
+    }catch{const el=document.getElementById(d.id);if(el){el.textContent='—';el.classList.remove('ldg');}}
+  });
+  loadHomeIncidents();
+}
+
+async function loadHomeIncidents(){
+  try{
+    const rows=await runLA(`SecurityIncident
+| where TimeGenerated>=ago(7d)
+| where Status=='Active'
+| project Title, Severity, TimeGenerated
+| order by TimeGenerated desc | take 8`);
+    const el=document.getElementById('home-incidents-list');
+    if(!el)return;
+    if(!rows||rows.length===0){el.innerHTML='<div class="sbox" style="padding:10px">No active incidents</div>';return;}
+    el.innerHTML=rows.map(r=>{
+      const mins=Math.round((Date.now()-new Date(r.TimeGenerated))/60000);
+      const ago=mins<60?mins+'m ago':Math.round(mins/60)+'h ago';
+      return `<div class="hi-row"><div class="hi-dot ${r.Severity||''}"></div><span>${r.Title||'Untitled'}</span><span class="hi-sev">${r.Severity||''}</span><span class="hi-time">${ago}</span></div>`;
+    }).join('');
+  }catch(e){const el=document.getElementById('home-incidents-list');if(el)el.innerHTML='<div class="sbox" style="padding:10px">Unable to load</div>';}
+}
+
 function onTRChange(){Object.keys(PC).forEach(k=>delete PC[k]);refreshAct();loadKPIs(aDash);}
+
+// ── DEPT CONFIG ───────────────────────────────────────────────
+const DEPT_CONFIG={
+  home:{label:'🏠 Home',dashes:[]},
+  defense:{label:'🛡️ CyberDefense',dashes:[
+    {id:'def_exec',   label:'Executive Summary'},
+    {id:'def_sentinel',label:'Sentinel Health'},
+    {id:'d6',         label:'MDE Coverage'},
+    {id:'def_identity',label:'Identity Threats'},
+    {id:'def_email',  label:'Email Threats'},
+    {id:'def_dns',    label:'DNS Threats'},
+    {id:'def_privileged',label:'Privileged Access'},
+    {id:'def_sharepoint',label:'SharePoint'},
+    {id:'d12',        label:'Saviynt'},
+    {id:'def_oci',    label:'OCI Threats'},
+    {id:'d10',        label:'GitHub / DevOps'},
+  ]},
+  arch:{label:'🏗️ CyberArchitecture',dashes:[
+    {id:'arch_exec',  label:'Executive Summary'},
+    {id:'arch_posture',label:'Security Posture'},
+    {id:'d2',         label:'Networking'},
+    {id:'d3',         label:'Compute'},
+    {id:'d4',         label:'Data & Storage'},
+    {id:'d8',         label:'AI & Apps'},
+    {id:'arch_oci',   label:'OCI Infrastructure'},
+  ]},
+  grc:{label:'📋 CyberGRC',dashes:[
+    {id:'grc_exec',   label:'Executive Summary'},
+    {id:'grc_governance',label:'Governance'},
+    {id:'grc_policy', label:'Policy & Compliance'},
+    {id:'grc_access', label:'Access Reviews'},
+    {id:'grc_ca',     label:'Conditional Access'},
+    {id:'grc_audit',  label:'Audit Trail'},
+    {id:'grc_regulatory',label:'Regulatory'},
+  ]},
+};
+let aDept='home';
+
+function buildDashSection(id){
+  if(document.getElementById('ds-'+id))return;
+  const div=document.createElement('div');
+  div.className='dsect';div.id='ds-'+id;
+  div.innerHTML=`<div class="kstrip" id="kpi-${id}"></div><div class="stbar-wrap"><div class="stbar" id="st-${id}"></div></div><div id="pn-${id}"></div>`;
+  document.getElementById('content').appendChild(div);
+}
+
+function switchDept(dept,el){
+  aDept=dept;
+  document.querySelectorAll('.dtab').forEach(t=>t.classList.remove('act'));
+  if(el)el.classList.add('act');
+  const hv=document.getElementById('homeView');
+  const mt=document.getElementById('mainTabs');
+  const ct=document.getElementById('content');
+  const pb=document.getElementById('pbanner');
+  if(dept==='home'){
+    hv.style.display='flex';mt.style.display='none';ct.style.display='none';pb.style.display='none';
+    return;
+  }
+  hv.style.display='none';mt.style.display='flex';ct.style.display='block';pb.style.display='flex';
+  const conf=DEPT_CONFIG[dept];
+  mt.innerHTML='';
+  conf.dashes.forEach((d,i)=>{
+    const span=document.createElement('span');
+    span.className='mtab'+(i===0?' act':'');
+    span.textContent=d.label;
+    span.onclick=()=>switchD(d.id,span);
+    mt.appendChild(span);
+  });
+  if(conf.dashes.length>0)switchD(conf.dashes[0].id,mt.firstChild);
+}
 
 // ── NAV ───────────────────────────────────────────────────────
 function switchD(id,el){
-  if(el.classList.contains('dis'))return;
+  if(el&&el.classList.contains('dis'))return;
+  // Build section dynamically if not yet created
+  buildDashSection(id);
+  if(!document.querySelector(`#pn-${id}`).children.length && PANELS[id]){
+    buildDash(id,PANELS[id]);
+  }
   document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('act'));
-  el.classList.add('act');
+  if(el)el.classList.add('act');
   document.querySelectorAll('.dsect').forEach(s=>s.classList.remove('act'));
   document.getElementById('ds-'+id).classList.add('act');
   aDash=id;
   const first=document.querySelector(`#st-${id} .stab`);
   if(first&&!document.querySelector(`#st-${id} .stab.act`))first.click();
-  if(!document.getElementById(`kpi-${id}`).children.length)loadKPIs(id);
+  const kpiEl=document.getElementById(`kpi-${id}`);
+  if(kpiEl&&!kpiEl.children.length)loadKPIs(id);
 }
 function buildDash(id,panels){
   const stabs=document.getElementById('st-'+id);
@@ -480,6 +676,122 @@ function buildDash(id,panels){
 }
 
 // ── KPI STRIPS ────────────────────────────────────────────────
+// ── DEPT PANEL SPLITS (filter from existing arrays) ─────────────
+PANELS.def_sentinel  = PANELS.d7.filter(p=>!['Proofpoint Threats','Umbrella DNS Threats'].includes(p.label));
+PANELS.def_email     = PANELS.d7.filter(p=>p.label==='Proofpoint Threats');
+PANELS.def_dns       = PANELS.d7.filter(p=>p.label==='Umbrella DNS Threats');
+PANELS.def_identity  = PANELS.d5.filter(p=>['Identity & PIM','Managed Identities','KV Secrets / Certs','Sign-in Anomalies','UEBA Anomalies','CA Policy Coverage','SP Sign-in Activity'].includes(p.label));
+PANELS.def_privileged= [...PANELS.d5.filter(p=>['Identity & PIM','Managed Identities'].includes(p.label)),...PANELS.d1.filter(p=>['Privileged Roles','Guest Principals'].includes(p.label))];
+PANELS.def_sharepoint= PANELS.d11.filter(p=>['Overview','External Sharing','Bulk Downloads','Sensitive File Activity','Anonymous Links','File Operations'].includes(p.label));
+PANELS.def_oci       = PANELS.d13.filter(p=>['Identity & Sign-ins','User & Group Changes','All Events'].includes(p.label));
+PANELS.arch_posture  = PANELS.d5.filter(p=>['Vulnerability Management','Attack Paths','AKS Security','Backup Coverage','Orphaned Resources','Compliance','Shadow Subscriptions','Incident MTTD/MTTR','Quick Wins','Remediation Guidance','CLI Reference','Secure Score'].includes(p.label));
+PANELS.arch_oci      = PANELS.d13.filter(p=>['Overview','Kubernetes','Integration Activity','Networking','Compute & Storage','Database','Key Management & Secrets'].includes(p.label));
+PANELS.grc_governance= PANELS.d1.filter(p=>['Subscription Overview','Management Groups','RBAC Summary','Tag Coverage','Shadow Subscriptions'].includes(p.label));
+PANELS.grc_policy    = [...PANELS.d1.filter(p=>['Policy Compliance'].includes(p.label)),...PANELS.d5.filter(p=>['Compliance','Secure Score'].includes(p.label))];
+PANELS.grc_access    = [...PANELS.d5.filter(p=>['Identity & PIM','CA Policy Coverage'].includes(p.label)),...PANELS.d1.filter(p=>['Privileged Roles','Guest Principals','RBAC Summary'].includes(p.label))];
+PANELS.grc_ca        = [...PANELS.d1.filter(p=>['Sign-in Failures','Legacy Auth','Geo Distribution'].includes(p.label)),...PANELS.d5.filter(p=>['CA Policy Coverage','Sign-in Anomalies'].includes(p.label))];
+PANELS.grc_audit     = [...PANELS.d12.filter(p=>['Audit Overview','All Activity'].includes(p.label)),...PANELS.d11.filter(p=>['Admin Activity','Permission Changes'].includes(p.label)),...PANELS.d13.filter(p=>['Identity & Sign-ins','User & Group Changes'].includes(p.label))];
+PANELS.grc_regulatory= PANELS.d5.filter(p=>['Compliance','Secure Score','Quick Wins','Remediation Guidance'].includes(p.label));
+
+// ── EXECUTIVE SUMMARY PANELS ─────────────────────────────────────
+PANELS.def_exec=[
+  {label:'Incident Overview',type:'la',query:`SecurityIncident
+| where TimeGenerated >= ago(7d)
+| summarize TotalIncidents=count(),Active=countif(Status=='Active'),High=countif(Severity=='High'),Critical=countif(Severity=='Critical'),AvgMTTD=round(avg(datetime_diff('minute',FirstActivityTime,CreatedTime)),0) by bin(TimeGenerated,1d)
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
+| order by TimeGenerated asc`},
+  {label:'Identity Risk',type:'la',query:`union
+  (SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Value=count()|extend Label='Sign-in Failures (7d)'),
+  (BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Value=count()|extend Label='UEBA Anomalies (7d)'),
+  (SigninLogs|where TimeGenerated>=ago(7d)|where RiskLevelDuringSignIn in ('high','medium')|summarize Value=dcount(UserPrincipalName)|extend Label='Risky Sign-in Users (7d)'),
+  (AADServicePrincipalSignInLogs|where TimeGenerated>=ago(7d)|where ResultType!=0|summarize Value=count()|extend Label='SP Sign-in Failures (7d)')
+| project Label, Value
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SecurityMenuBlade/~/RiskyUsers/menuId/RiskyUsers/fromNav/'`},
+  {label:'Email & DNS Threats',type:'la',query:`union
+  (ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Value=count()|extend Label='Emails Blocked by Proofpoint'),
+  (ProofPointTAPMessagesDelivered_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Value=count()|extend Label='Threats Delivered'),
+  (Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Value=count()|extend Label='DNS Requests Blocked'),
+  (Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Value=dcount(Domain_s)|extend Label='Unique Malicious Domains')
+| project Label, Value
+| extend PortalLink='https://threatinsight.proofpoint.com'`},
+  {label:'Alert Trend (30d)',type:'la',viz:'timechart',query:`SecurityAlert
+| where TimeGenerated>=ago(30d)
+| summarize Count=count() by bin(TimeGenerated,1d), AlertSeverity
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/6'
+| order by TimeGenerated asc`},
+];
+
+PANELS.arch_exec=[
+  {label:'Posture Overview',type:'arg',query:`union
+  (securityresources|where type=='microsoft.security/securescores'|extend Value=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Value),1)|extend Label='Avg Secure Score (%)', Value=Score|project Label,Value),
+  (securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Value=count()|extend Label='Critical Controls'),
+  (securityresources|where type=='microsoft.security/attackpaths'|summarize Value=count()|extend Label='Attack Paths'),
+  (Resources|where type=='microsoft.network/publicipaddresses'|summarize Value=count()|extend Label='Public IPs Exposed')
+| project Label, Value
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'`},
+  {label:'Infrastructure Risk',type:'arg',query:`union
+  (Resources|where type=='microsoft.compute/virtualmachines'|extend VMId=tolower(id)|join kind=leftouter(Resources|where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'|where properties.workloadType=='VM'|extend SourceVMId=tolower(tostring(properties.sourceResourceId))|project SourceVMId)on $left.VMId==$right.SourceVMId|where isempty(SourceVMId)|summarize Value=count()|extend Label='VMs Without Backup'),
+  (Resources|where type=='microsoft.storage/storageaccounts'|where properties.allowBlobPublicAccess==true|summarize Value=count()|extend Label='Storage with Public Blob Access'),
+  (Resources|where type=='microsoft.web/sites'|where properties.httpsOnly!=true|summarize Value=count()|extend Label='App Services Without HTTPS'),
+  (Resources|where(type=='microsoft.compute/disks'and properties.diskState=='Unattached')or(type=='microsoft.network/publicipaddresses'and isnull(properties.ipConfiguration))|summarize Value=count()|extend Label='Orphaned Resources')
+| project Label, Value
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'`},
+  {label:'Compliance Trend',type:'arg',query:`securityresources
+| where type=='microsoft.security/assessments'
+| where properties.status.code=='Unhealthy'
+| extend Severity=tostring(properties.metadata.severity)
+| extend Category=tostring(properties.metadata.categories[0])
+| summarize Count=count() by Severity, Category
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'
+| order by Count desc | take 50`},
+  {label:'Secure Score by Subscription',type:'arg',query:`securityresources
+| where type=='microsoft.security/securescores'
+| extend ScorePct=round(todouble(properties.score.percentage)*100,1)
+| extend ScoreCurrent=round(todouble(properties.score.current),2)
+| extend ScoreMax=round(todouble(properties.score.max),2)
+| extend Environment=tostring(properties.environment)
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
+| project SubscriptionId=subscriptionId, ScorePct, ScoreCurrent, ScoreMax, Environment, PortalLink
+| order by ScorePct asc`},
+];
+
+PANELS.grc_exec=[
+  {label:'Governance Overview',type:'arg',query:`union
+  (PolicyResources|where type=~'microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Value=count()|extend Label='Policy Violations'),
+  (ResourceContainers|where type=='microsoft.resources/subscriptions'|extend MgChain=array_length(properties.managementGroupAncestorsChain)|where MgChain==0 or isnull(MgChain)|summarize Value=count()|extend Label='Shadow Subscriptions'),
+  (Resources|where type!in('microsoft.resources/subscriptions','microsoft.resources/resourcegroups')|extend TagCount=array_length(bag_keys(tags))|where TagCount==0|summarize Value=count()|extend Label='Untagged Resources'),
+  (AuthorizationResources|where type=='microsoft.authorization/roleassignments'|where properties.principalType in('Guest','ForeignGroup')|summarize Value=count()|extend Label='Guest Principal Assignments')
+| project Label, Value
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'`},
+  {label:'Access Risk',type:'arg',query:`AuthorizationResources
+| where type=='microsoft.authorization/roleassignments'
+| extend RoleId=tolower(tostring(properties.roleDefinitionId))
+| extend IsPrivileged=RoleId has_any ('8e3af657','b24988ac','18d7d88d','fb1c8493')
+| extend IsGuest=properties.principalType in ('Guest','ForeignGroup')
+| extend ScopeLevel=case(tostring(properties.scope) has '/resourceGroups/','Resource Group',tostring(properties.scope) has '/subscriptions/','Subscription',tostring(properties.scope) has '/providers/Microsoft.Management/','Management Group','Other')
+| summarize PrivilegedRoles=countif(IsPrivileged), GuestPrincipals=countif(IsGuest), TotalAssignments=count() by ScopeLevel
+| extend PortalLink='https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions'
+| order by TotalAssignments desc`},
+  {label:'Policy Compliance by Subscription',type:'arg',query:`PolicyResources
+| where type=~'microsoft.policyinsights/policystates'
+| extend ComplianceState=tostring(properties.complianceState)
+| summarize Total=count(), NonCompliant=countif(ComplianceState=='NonCompliant'), Compliant=countif(ComplianceState=='Compliant') by Subscription=subscriptionId
+| extend CompliancePct=round(toreal(Compliant)/Total*100,1)
+| extend Status=case(CompliancePct>=90,'🟢',CompliancePct>=70,'🟡','🔴')
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'
+| order by CompliancePct asc | take 100`},
+  {label:'Regulatory Controls Summary',type:'arg',query:`securityresources
+| where type=='microsoft.security/assessments'
+| extend ComplianceState=tostring(properties.status.code)
+| extend Category=tostring(properties.metadata.categories[0])
+| extend Severity=tostring(properties.metadata.severity)
+| summarize Healthy=countif(ComplianceState=='Healthy'),Unhealthy=countif(ComplianceState=='Unhealthy'),Total=count() by Category,Severity
+| extend CompliancePct=round(toreal(Healthy)/Total*100,1)
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
+| order by CompliancePct asc`},
+];
+
+
 const KDEFS={
   d5:[
     {l:'High/Critical Controls',c:'kc-rd',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`},k:'Count'},
@@ -569,6 +881,30 @@ const KDEFS={
     {l:'Vuln Alerts',c:'kc-or',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='repository_vulnerability_alert.create'|summarize Count=count()`},k:'Count'},
     {l:'Branch Overrides',c:'kc-yw',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='protected_branch.policy_override'|summarize Count=count()`},k:'Count'},
     {l:'Workflow Failures',c:'kc-rd',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='workflows.completed_workflow_run' and Conclusion=='failure'|summarize Count=count()`},k:'Count'},
+  ],
+  def_exec:[
+    {l:'Active Incidents',c:'kc-rd',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count()`},k:'Count'},
+    {l:'Avg MTTD (min)',c:'kc-or',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|extend MTTD=datetime_diff('minute',FirstActivityTime,CreatedTime)|summarize Count=round(avg(MTTD),0)`},k:'Count'},
+    {l:'Sign-in Failures (7d)',c:'kc-yw',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`},k:'Count'},
+    {l:'UEBA Anomalies',c:'kc-or',q:{t:'la',q:`BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Count=count()`},k:'Count'},
+    {l:'Emails Blocked (7d)',c:'kc-rd',q:{t:'la',q:`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
+    {l:'DNS Blocked (7d)',c:'kc-bl',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=count()`},k:'Count'},
+  ],
+  arch_exec:[
+    {l:'Secure Score (%)',c:'kc-cy',q:{t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`},k:'Score'},
+    {l:'Critical Controls',c:'kc-rd',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`},k:'Count'},
+    {l:'Attack Paths',c:'kc-or',q:{t:'arg',q:`securityresources|where type=='microsoft.security/attackpaths'|summarize Count=count()`},k:'Count'},
+    {l:'Unprotected VMs',c:'kc-yw',q:{t:'arg',q:`Resources|where type=='microsoft.compute/virtualmachines'|extend VMId=tolower(id)|join kind=leftouter(Resources|where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'|where properties.workloadType=='VM'|extend SourceVMId=tolower(tostring(properties.sourceResourceId))|project SourceVMId)on $left.VMId==$right.SourceVMId|where isempty(SourceVMId)|summarize Count=count()`},k:'Count'},
+    {l:'Public IPs',c:'kc-or',q:{t:'arg',q:`Resources|where type=='microsoft.network/publicipaddresses'|summarize Count=count()`},k:'Count'},
+    {l:'Orphaned Resources',c:'kc-bl',q:{t:'arg',q:`Resources|where(type=='microsoft.compute/disks'and properties.diskState=='Unattached')or(type=='microsoft.network/publicipaddresses'and isnull(properties.ipConfiguration))|summarize Count=count()`},k:'Count'},
+  ],
+  grc_exec:[
+    {l:'Policy Violations',c:'kc-rd',q:{t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Count=count()`},k:'Count'},
+    {l:'Privileged Roles',c:'kc-or',q:{t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|extend RoleId=tolower(tostring(properties.roleDefinitionId))|where RoleId has_any ('8e3af657','b24988ac','18d7d88d','fb1c8493')|summarize Count=count()`},k:'Count'},
+    {l:'Guest Principals',c:'kc-yw',q:{t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|where properties.principalType in ('Guest','ForeignGroup')|summarize Count=count()`},k:'Count'},
+    {l:'Shadow Subscriptions',c:'kc-rd',q:{t:'arg',q:`ResourceContainers|where type=='microsoft.resources/subscriptions'|extend MgChain=array_length(properties.managementGroupAncestorsChain)|where MgChain==0 or isnull(MgChain)|summarize Count=count()`},k:'Count'},
+    {l:'Untagged Resources',c:'kc-yw',q:{t:'arg',q:`Resources|where type!in('microsoft.resources/subscriptions','microsoft.resources/resourcegroups')|extend TagCount=array_length(bag_keys(tags))|where TagCount==0|summarize Count=count()`},k:'Count'},
+    {l:'Secure Score (%)',c:'kc-cy',q:{t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`},k:'Score'},
   ],
   d6:[
     {l:'Total Devices',c:'kc-cy',q:{t:'la',q:`DeviceInfo|where Timestamp>=ago(7d)|summarize arg_max(Timestamp,*)by DeviceId|summarize Count=count()`},k:'Count'},
@@ -2009,19 +2345,6 @@ function onAuth(){
   document.getElementById('content').style.display='block';
   document.getElementById('mainTabs').style.display='block';
   document.getElementById('pbanner').style.display='flex';
-  buildDash('d5',PANELS.d5);
-  buildDash('d7',PANELS.d7);
-  buildDash('d6',PANELS.d6);
-  buildDash('d1',PANELS.d1);
-  buildDash('d2',PANELS.d2);
-  buildDash('d3',PANELS.d3);
-  buildDash('d4',PANELS.d4);
-  buildDash('d8',PANELS.d8);
-  buildDash('d10',PANELS.d10);
-  buildDash('d11',PANELS.d11);
-  buildDash('d12',PANELS.d12);
-  buildDash('d13',PANELS.d13);
-  loadKPIs('d5');
   loadSubscriptions();
 }
 window.addEventListener('DOMContentLoaded',async()=>{
