@@ -252,6 +252,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   <span class="mtab" onclick="switchD('d4',this)">🗄️ Data &amp; Storage</span>
   <span class="mtab" onclick="switchD('d8',this)">🤖 AI &amp; Apps</span>
   <span class="mtab" onclick="switchD('d10',this)">🐙 GitHub / DevOps</span>
+  <span class="mtab" onclick="switchD('d11',this)">📁 SharePoint</span>
 </div>
 
 <div id="content">
@@ -262,6 +263,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   <div class="dsect" id="ds-d3"><div class="kstrip" id="kpi-d3"></div><div class="stbar-wrap"><div class="stbar" id="st-d3"></div></div><div id="pn-d3"></div></div>
   <div class="dsect" id="ds-d4"><div class="kstrip" id="kpi-d4"></div><div class="stbar-wrap"><div class="stbar" id="st-d4"></div></div><div id="pn-d4"></div></div>
   <div class="dsect" id="ds-d8"><div class="kstrip" id="kpi-d8"></div><div class="stbar-wrap"><div class="stbar" id="st-d8"></div></div><div id="pn-d8"></div></div>
+  <div class="dsect" id="ds-d11"><div class="kstrip" id="kpi-d11"></div><div class="stbar-wrap"><div class="stbar" id="st-d11"></div></div><div id="pn-d11"></div></div>
   <div class="dsect" id="ds-d10"><div class="kstrip" id="kpi-d10"></div><div class="stbar-wrap"><div class="stbar" id="st-d10"></div></div><div id="pn-d10"></div></div>
   <div class="dsect"     id="ds-d6"><div class="kstrip" id="kpi-d6"></div><div class="stbar-wrap"><div class="stbar" id="st-d6"></div></div><div id="pn-d6"></div></div>
 </div>
@@ -531,6 +533,14 @@ const KDEFS={
     {l:'HTTPS Not Enforced',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|where properties.httpsOnly!=true|summarize Count=count()`},k:'Count'},
     {l:'Function Apps',c:'kc-gn',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|where kind has 'functionapp'|summarize Count=count()`},k:'Count'},
     {l:'APIM Services',c:'kc-or',q:{t:'arg',q:`Resources|where type=='microsoft.apimanagement/service'|summarize Count=count()`},k:'Count'},
+  ],
+  d11:[
+    {l:'Total Events (7d)',c:'kc-cy',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|summarize Count=count()`},k:'Count'},
+    {l:'Unique Users',c:'kc-bl',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|summarize Count=dcount(UserId)`},k:'Count'},
+    {l:'External Shares',c:'kc-rd',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('SharingSet','SharingLinkCreated','SharingInvitationCreated')|where ExternalAccess==true|summarize Count=count()`},k:'Count'},
+    {l:'Bulk Downloads',c:'kc-or',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('FileDownloaded','FileSyncDownloadedFull')|summarize Count=count() by UserId|where Count>100|summarize Count=count()`},k:'Count'},
+    {l:'Permission Changes',c:'kc-yw',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('SharingInheritanceBroken','PermissionLevelAdded','SiteCollectionAdminAdded','AccessRequestApproved')|summarize Count=count()`},k:'Count'},
+    {l:'Files Deleted',c:'kc-rd',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('FileDeleted','FileVersionsAllDeleted','FileRecycled')|summarize Count=count()`},k:'Count'},
   ],
   d10:[
     {l:'Events (30d)',c:'kc-cy',q:{t:'la',q:`GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|summarize Count=count()`},k:'Count'},
@@ -1286,6 +1296,127 @@ d8:[
 | project Name=name,Status,Location=location,PricingTier,AppServicePlan,Subscription=subscriptionId,AppType,PortalLink
 | order by Status asc,Name asc | take 1000`},
 ],
+
+d11:[
+  {label:'Overview',type:'la',query:`OfficeActivity
+| where TimeGenerated {TimeRange}
+| where OfficeWorkload == 'SharePoint'
+| extend SiteUrl = tostring(Site_Url)
+| summarize
+    TotalEvents = count(),
+    UniqueUsers = dcount(UserId),
+    UniqueSites = dcount(SiteUrl),
+    Downloads = countif(Operation in ('FileDownloaded','FileSyncDownloadedFull')),
+    Uploads = countif(Operation == 'FileUploaded'),
+    Deletes = countif(Operation in ('FileDeleted','FileRecycled')),
+    ExternalShares = countif(Operation in ('SharingSet','SharingLinkCreated') and ExternalAccess == true)
+    by bin(TimeGenerated,1d)
+| extend PortalLink = 'https://admin.microsoft.com/sharepoint'
+| order by TimeGenerated asc`},
+
+  {label:'External Sharing',type:'la',query:`OfficeActivity
+| where TimeGenerated {TimeRange}
+| where OfficeWorkload == 'SharePoint'
+| where Operation in ('SharingSet','SharingLinkCreated','SharingInvitationCreated','AddedToSharingLink','SharingLinkUsed')
+| extend SiteUrl = tostring(Site_Url)
+| extend FileName = tostring(SourceFileName)
+| extend SharedWith = tostring(UserSharedWith)
+| extend SharingType = tostring(SharingType)
+| extend IsExternal = ExternalAccess == true
+| extend PortalLink = strcat('https://eagle.sharepoint.com/_layouts/15/viewlsts.aspx?view=14')
+| project TimeGenerated, Operation, UserId, SharedWith, SharingType, IsExternal, FileName, SiteUrl, PortalLink
+| order by TimeGenerated desc | take 500`},
+
+  {label:'Bulk Downloads',type:'la',query:`OfficeActivity
+| where TimeGenerated {TimeRange}
+| where OfficeWorkload == 'SharePoint'
+| where Operation in ('FileDownloaded','FileSyncDownloadedFull','FileSyncDownloadedPartial')
+| extend SiteUrl = tostring(Site_Url)
+| extend FileName = tostring(SourceFileName)
+| extend ClientIP = tostring(ClientIP)
+| summarize
+    DownloadCount = count(),
+    UniqueSites = dcount(SiteUrl),
+    UniqueFiles = dcount(FileName),
+    LastDownload = max(TimeGenerated)
+    by UserId, ClientIP
+| where DownloadCount > 50
+| extend RiskLevel = case(DownloadCount > 1000, 'High', DownloadCount > 300, 'Medium', 'Low')
+| extend PortalLink = 'https://compliance.microsoft.com/auditlogsearch'
+| order by DownloadCount desc | take 200`},
+
+  {label:'Permission Changes',type:'la',query:`OfficeActivity
+| where TimeGenerated {TimeRange}
+| where OfficeWorkload == 'SharePoint'
+| where Operation in (
+    'SharingInheritanceBroken','SharingInheritanceReset',
+    'PermissionLevelAdded','PermissionLevelModified',
+    'SiteCollectionAdminAdded','SiteCollectionAdminRemoved',
+    'AccessRequestApproved','AccessRequestRejected','AccessRequestCreated',
+    'GroupAdded','GroupRemoved','GroupUpdated',
+    'AddedToGroup','RemovedFromGroup',
+    'WebAccessRequestApproverModified','WebMembersCanShareModified')
+| extend SiteUrl = tostring(Site_Url)
+| extend PortalLink = strcat('https://eagle.sharepoint.com/_layouts/15/user.aspx')
+| project TimeGenerated, Operation, UserId, SiteUrl, PortalLink
+| order by TimeGenerated desc | take 500`},
+
+  {label:'Sensitive File Activity',type:'la',query:`OfficeActivity
+| where TimeGenerated {TimeRange}
+| where OfficeWorkload == 'SharePoint'
+| where Operation in ('FileAccessed','FileDownloaded','FileDeleted','FileMoved','FileCopied')
+| extend FileName = tostring(SourceFileName)
+| extend FileExt = tostring(SourceFileExtension)
+| extend SiteUrl = tostring(Site_Url)
+| where FileExt in ('xlsx','xls','csv','pdf','docx','doc','pptx','zip','7z','ps1','py','sh','key','pem','pfx','json','sql')
+    or SiteUrl has_any ('security','confidential','restricted','hr','legal','finance','compliance','executive')
+| extend PortalLink = strcat('https://compliance.microsoft.com/auditlogsearch')
+| project TimeGenerated, Operation, UserId, FileName, FileExt, SiteUrl, PortalLink
+| order by TimeGenerated desc | take 500`},
+
+  {label:'Anonymous Links',type:'la',query:`OfficeActivity
+| where TimeGenerated {TimeRange}
+| where OfficeWorkload == 'SharePoint'
+| where Operation in ('CompanyLinkCreated','CompanyLinkUsed','SecureLinkCreated','SecureLinkUsed','SharingLinkCreated','SharingLinkUsed','SharingLinkUpdated','AddedToSecureLink')
+| extend FileName = tostring(SourceFileName)
+| extend SiteUrl = tostring(Site_Url)
+| extend LinkType = case(
+    Operation has 'Company','Company Link',
+    Operation has 'Secure','Secure Link',
+    Operation has 'Sharing','Sharing Link','Other')
+| extend PortalLink = 'https://admin.microsoft.com/sharepoint#/sharing'
+| project TimeGenerated, Operation, LinkType, UserId, FileName, SiteUrl, PortalLink
+| order by TimeGenerated desc | take 500`},
+
+  {label:'Admin Activity',type:'la',query:`OfficeActivity
+| where TimeGenerated {TimeRange}
+| where OfficeWorkload == 'SharePoint'
+| where Operation in (
+    'SiteCollectionCreated','SiteDeleted','SiteLocksChanged',
+    'SharingPolicyChanged','FeatureActivated','FeatureDeactivated',
+    'SiteCollectionQuotaModified','DenyAddAndCustomizePages',
+    'SiteIBModeSet','SiteIBModeChanged','SiteFileVersionTrimmingSettingsChanged',
+    'WebRequestAccessModified','SiteDesignInvoked')
+| extend SiteUrl = tostring(Site_Url)
+| extend PortalLink = 'https://admin.microsoft.com/sharepoint#/siteManagement'
+| project TimeGenerated, Operation, UserId, SiteUrl, PortalLink
+| order by TimeGenerated desc | take 500`},
+
+  {label:'File Operations',type:'la',query:`OfficeActivity
+| where TimeGenerated {TimeRange}
+| where OfficeWorkload == 'SharePoint'
+| where Operation in ('FileDeleted','FileVersionsAllDeleted','FileVersionDeleted','FileRecycled','FileMoved','FileRenamed','FileCopied')
+| extend FileName = tostring(SourceFileName)
+| extend SiteUrl = tostring(Site_Url)
+| extend FileExt = tostring(SourceFileExtension)
+| summarize
+    Count = count(),
+    UniqueFiles = dcount(FileName),
+    LastActivity = max(TimeGenerated)
+    by UserId, Operation, SiteUrl
+| extend PortalLink = strcat('https://eagle.sharepoint.com/_layouts/15/recycleBin.aspx')
+| order by Count desc | take 500`},
+],
 d10:[
   {label:'GitHub Overview',type:'la',query:`union
   (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|summarize Value=count()|extend Label="Total Events (30d)"),
@@ -1655,6 +1786,7 @@ function onAuth(){
   buildDash('d4',PANELS.d4);
   buildDash('d8',PANELS.d8);
   buildDash('d10',PANELS.d10);
+  buildDash('d11',PANELS.d11);
   loadKPIs('d5');
   loadSubscriptions();
 }
