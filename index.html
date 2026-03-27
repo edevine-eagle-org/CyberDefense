@@ -292,7 +292,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 <div id="homeView">
   <div class="home-hdr">
     <h2>ABS Cyber Security</h2>
-    <p>Tenant: American Bureau of Shipping &nbsp;|&nbsp; Designed and Built by: Eddie Devine, SIEM Engineer - ABS CyberDefense</p>
+
   </div>
   <div class="dept-cards">
     <div class="dept-card defense" onclick="switchDept('defense',document.querySelectorAll('.dtab')[1])">
@@ -512,7 +512,7 @@ function refreshAct(){
 async function loadHomeKPIs(){
   const defKPIs=[
     {id:'hkv-def-0',t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count()`,k:'Count'},
-    {id:'hkv-def-1',t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|extend MTTD=datetime_diff('minute',FirstActivityTime,CreatedTime)|summarize Count=round(avg(MTTD),0)`,k:'Count'},
+    {id:'hkv-def-1',t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|extend MTTD=abs(datetime_diff('minute',FirstActivityTime,CreatedTime))|summarize Count=round(avg(MTTD),0)`,k:'Count'},
     {id:'hkv-def-2',t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`,k:'Count'},
     {id:'hkv-arch-0',t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`,k:'Score'},
     {id:'hkv-arch-1',t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`,k:'Count'},
@@ -770,7 +770,7 @@ const KDEFS={
   ],
   def_exec:[
     {l:'Active Incidents',c:'kc-rd',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count()`},k:'Count'},
-    {l:'Avg MTTD (min)',c:'kc-or',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|extend MTTD=datetime_diff('minute',FirstActivityTime,CreatedTime)|summarize Count=round(avg(MTTD),0)`},k:'Count'},
+    {l:'Avg MTTD (min)',c:'kc-or',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(7d)|extend MTTD=abs(datetime_diff('minute',FirstActivityTime,CreatedTime))|summarize Count=round(avg(MTTD),0)`},k:'Count'},
     {l:'Sign-in Failures (7d)',c:'kc-yw',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`},k:'Count'},
     {l:'UEBA Anomalies',c:'kc-or',q:{t:'la',q:`BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Count=count()`},k:'Count'},
     {l:'Emails Blocked (7d)',c:'kc-rd',q:{t:'la',q:`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
@@ -2348,6 +2348,7 @@ function onAuth(){
   document.getElementById('uemail').textContent=acct.username;
   document.getElementById('deptBar').style.display='flex';
   document.getElementById('homeView').style.display='flex';
+  document.getElementById('subFilterWrap').style.display='block';
   // Pre-build core dashes
   ['d6','d7','d5','d1','d2','d3','d4','d8','d10','d11','d12','d13'].forEach(id=>{
     buildDashSection(id);
