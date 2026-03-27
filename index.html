@@ -99,7 +99,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .stbar{padding:4px 20px;display:flex;flex-wrap:wrap;gap:0;}
 .stab{font-family:var(--fm);font-size:10.5px;color:var(--txt2);padding:7px 11px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;flex-shrink:0;}
 /* ── DEPT NAV ── */
-#deptBar{background:var(--bg);border-bottom:2px solid var(--border);padding:0 20px;display:none;gap:0;}
+#deptBar{background:var(--bg);border-bottom:2px solid var(--border);padding:0 20px;display:none;flex-direction:row;gap:0;}
 .dtab{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);padding:10px 20px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.15s;user-select:none;}
 .dtab:hover{color:var(--txt);}
 .dtab.act.home{color:var(--cy);border-bottom-color:var(--cy);}
@@ -328,14 +328,13 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
     <div id="home-incidents-list"><div class="sbox sk" style="padding:12px">Loading...</div></div>
   </div>
 </div>
-<div id="pbanner">
-  <span class="ppill">ABS IMS Security</span>
-  <span style="color:var(--txt2)">Security Posture · Sentinel Health · MDE Coverage · Tenant &amp; Governance · Networking · Compute · Data &amp; Storage · AI &amp; Apps · GitHub / DevOps</span>
+<div id="pbanner" style="display:none">
+  <span class="ppill">ABS Cyber Security</span>
 </div>
 
 <div id="mainTabs" style="display:none"></div>
   <div id="content" style="display:none">
-  <div class="dsect act" id="ds-d5"><div class="kstrip" id="kpi-d5"></div><div class="stbar-wrap"><div class="stbar" id="st-d5"></div></div><div id="pn-d5"></div></div>
+  <div class="dsect" id="ds-d5"><div class="kstrip" id="kpi-d5"></div><div class="stbar-wrap"><div class="stbar" id="st-d5"></div></div><div id="pn-d5"></div></div>
   <div class="dsect"     id="ds-d7"><div class="kstrip" id="kpi-d7"></div><div class="stbar-wrap"><div class="stbar" id="st-d7"></div></div><div id="pn-d7"></div></div>
   <div class="dsect" id="ds-d1"><div class="kstrip" id="kpi-d1"></div><div class="stbar-wrap"><div class="stbar" id="st-d1"></div></div><div id="pn-d1"></div></div>
   <div class="dsect" id="ds-d2"><div class="kstrip" id="kpi-d2"></div><div class="stbar-wrap"><div class="stbar" id="st-d2"></div></div><div id="pn-d2"></div></div>
@@ -2342,9 +2341,14 @@ function onAuth(){
   document.getElementById('lscr').style.display='none';
   document.getElementById('ubadge').style.display='flex';
   document.getElementById('uemail').textContent=acct.username;
-  document.getElementById('content').style.display='block';
-  document.getElementById('mainTabs').style.display='block';
-  document.getElementById('pbanner').style.display='flex';
+  document.getElementById('deptBar').style.display='flex';
+  document.getElementById('homeView').style.display='flex';
+  // Pre-build core dashes
+  ['d6','d7','d5','d1','d2','d3','d4','d8','d10','d11','d12','d13'].forEach(id=>{
+    buildDashSection(id);
+    if(PANELS[id])buildDash(id,PANELS[id]);
+  });
+  loadHomeKPIs();
   loadSubscriptions();
 }
 window.addEventListener('DOMContentLoaded',async()=>{
