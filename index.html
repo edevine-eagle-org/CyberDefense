@@ -204,7 +204,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 </script>
 
 <div id="topbar">
-  <div class="logo"><img src="./abs-logo-blue.png" alt="ABS" style="height:34px;vertical-align:middle;margin-right:10px;"><span style="color:var(--cyan);letter-spacing:3px;">CYBERDEFENSE</span></div>
+  <div class="logo">ABS<em> · </em>CYBERDEFENSE</div>
   <div class="vsep"></div>
   <div class="tmeta"><b>Tenant:</b> American Bureau of Shipping &nbsp;|&nbsp; <b>Designed and Built by:</b> Eddie Devine, SIEM Engineer - ABS CyberDefense</div>
   <div class="tright">
@@ -268,7 +268,8 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 
 <div id="lscr">
   <div class="lcard">
-    <img src="./abs-logo-blue.png" alt="ABS" style="height:64px;margin-bottom:12px;">
+    
+    <div class="llogo">ABS</div>
     <div class="lsub">CyberDefense · Security Dashboard</div>
     <div class="ldesc">Live security data from Microsoft Sentinel, Defender for Endpoint, Azure Resource Graph, and Log Analytics. Sign in with your ABS Azure AD account to load live data.</div>
     <button class="lcta" onclick="signIn()">Sign In with Azure AD</button>
