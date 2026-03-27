@@ -499,7 +499,7 @@ async function execP(def,cid,force){
     PC[cid]=rows;renderRes(rows,cid,def.viz);
   }catch(e){document.getElementById(cid).innerHTML=erSt(e.message);}
 }
-function refreshAct(){
+function refreshAct(){if(aDept==='home'){loadHomeKPIs();return;}
   const ap=document.querySelector(`#ds-${aDash} .qpan.act`);
   if(!ap)return;
   const cid=ap.dataset.cid,idx=ap.dataset.idx;
@@ -550,7 +550,7 @@ async function loadHomeIncidents(){
   }catch(e){const el=document.getElementById('home-incidents-list');if(el)el.innerHTML='<div class="sbox" style="padding:10px">Unable to load</div>';}
 }
 
-function onTRChange(){Object.keys(PC).forEach(k=>delete PC[k]);refreshAct();loadKPIs(aDash);}
+function onTRChange(){Object.keys(PC).forEach(k=>delete PC[k]);if(aDept!=='home'){refreshAct();if(aDash)loadKPIs(aDash);}else{loadHomeKPIs();}}
 
 // ── DEPT CONFIG ───────────────────────────────────────────────
 const DEPT_CONFIG={
@@ -804,6 +804,130 @@ const KDEFS={
     {l:'Open Incidents',c:'kc-yw',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Status=='Active'|summarize Count=count()`},k:'Count'},
     {l:'Defender Alerts (7d)',c:'kc-or',q:{t:'la',q:`SecurityAlert|where TimeGenerated>=ago(7d)|where ProductName has 'Defender'|summarize Count=count()`},k:'Count'},
   ],
+  // ── CYBERDEFENSE SUB-DASHES ────────────────────────────────────
+  def_sentinel:[
+    {l:'Incidents (30d)',c:'kc-rd',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|summarize Count=count()`},k:'Count'},
+    {l:'Active Incidents',c:'kc-or',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Status=='Active'|summarize Count=count()`},k:'Count'},
+    {l:'Degraded Rules',c:'kc-yw',q:{t:'la',q:`SentinelHealth|where TimeGenerated>=ago(7d)|where SentinelResourceType=='Analytics Rule'|where Status=='Failure'|summarize Count=dcount(SentinelResourceName)`},k:'Count'},
+    {l:'Tables Ingesting',c:'kc-gn',q:{t:'la',q:`Usage|where TimeGenerated>=ago(1d)|summarize Count=dcount(DataType)`},k:'Count'},
+    {l:'Ingestion Today (GB)',c:'kc-bl',q:{t:'la',q:`Usage|where TimeGenerated>=ago(1d)|summarize GB=round(sum(Quantity)/1024,1)`},k:'GB'},
+    {l:'Alerts (7d)',c:'kc-cy',q:{t:'la',q:`SecurityAlert|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
+  ],
+  def_identity:[
+    {l:'Sign-in Failures (7d)',c:'kc-rd',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`},k:'Count'},
+    {l:'UEBA Anomalies',c:'kc-or',q:{t:'la',q:`BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Count=count()`},k:'Count'},
+    {l:'Risky Sign-ins',c:'kc-yw',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where RiskLevelDuringSignIn in ('high','medium')|summarize Count=dcount(UserPrincipalName)`},k:'Count'},
+    {l:'SP Sign-in Failures',c:'kc-rd',q:{t:'la',q:`AADServicePrincipalSignInLogs|where TimeGenerated>=ago(7d)|where ResultType!=0|summarize Count=count()`},k:'Count'},
+    {l:'Legacy Auth (7d)',c:'kc-or',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ClientAppUsed in ('Exchange ActiveSync','IMAP4','POP3','Authenticated SMTP','Autodiscover')|summarize Count=count()`},k:'Count'},
+    {l:'CA Policy Failures',c:'kc-yw',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|mv-expand CAPolicy=todynamic(ConditionalAccessPolicies)|where tostring(CAPolicy.result)=='failure'|summarize Count=count()`},k:'Count'},
+  ],
+  def_email:[
+    {l:'Blocked (7d)',c:'kc-rd',q:{t:'la',q:`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
+    {l:'Delivered Threats (7d)',c:'kc-or',q:{t:'la',q:`ProofPointTAPMessagesDelivered_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Count=count()`},k:'Count'},
+    {l:'Phishing Blocked',c:'kc-yw',q:{t:'la',q:`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|mv-expand Threat=T|where tostring(Threat.classification)=='phish'|summarize Count=count()`},k:'Count'},
+    {l:'Malware Blocked',c:'kc-rd',q:{t:'la',q:`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|mv-expand Threat=T|where tostring(Threat.classification)=='malware'|summarize Count=count()`},k:'Count'},
+    {l:'Unique Senders',c:'kc-bl',q:{t:'la',q:`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Count=dcount(sender_s)`},k:'Count'},
+    {l:'Unique Targets',c:'kc-gn',q:{t:'la',q:`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Count=dcount(tostring(toAddresses_s))`},k:'Count'},
+  ],
+  def_dns:[
+    {l:'DNS Blocked (7d)',c:'kc-rd',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=count()`},k:'Count'},
+    {l:'Unique Domains',c:'kc-or',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=dcount(Domain_s)`},k:'Count'},
+    {l:'Unique Identities',c:'kc-yw',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=dcount(Policy_Identity_s)`},k:'Count'},
+    {l:'DNS Allowed (7d)',c:'kc-gn',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Allowed'|summarize Count=count()`},k:'Count'},
+    {l:'Total DNS Queries',c:'kc-bl',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
+    {l:'Block Rate (%)',c:'kc-cy',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|summarize Total=count(),Blocked=countif(Action_s=='Blocked')|extend Count=round(toreal(Blocked)/Total*100,1)`},k:'Count'},
+  ],
+  def_privileged:[
+    {l:'Privileged Roles',c:'kc-rd',q:{t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|extend RoleId=tolower(tostring(properties.roleDefinitionId))|where RoleId has_any ('8e3af657','b24988ac','18d7d88d','fb1c8493')|summarize Count=count()`},k:'Count'},
+    {l:'Guest Principals',c:'kc-or',q:{t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|where properties.principalType in ('Guest','ForeignGroup')|summarize Count=count()`},k:'Count'},
+    {l:'Managed Identities',c:'kc-gn',q:{t:'arg',q:`Resources|where type=='microsoft.managedidentity/userassignedidentities'|summarize Count=count()`},k:'Count'},
+    {l:'SP Sign-in Failures (7d)',c:'kc-yw',q:{t:'la',q:`AADServicePrincipalSignInLogs|where TimeGenerated>=ago(7d)|where ResultType!=0|summarize Count=count()`},k:'Count'},
+    {l:'UEBA Anomalies',c:'kc-or',q:{t:'la',q:`BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Count=count()`},k:'Count'},
+    {l:'KV Secrets Expiring',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.keyvault/vaults/secrets'|extend ExpiryDate=todatetime(properties.attributes.exp)|where datetime_diff('day',ExpiryDate,now())<30 and isnotnull(ExpiryDate)|summarize Count=count()`},k:'Count'},
+  ],
+  def_sharepoint:[
+    {l:'Total Events (7d)',c:'kc-cy',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|summarize Count=count()`},k:'Count'},
+    {l:'External Shares',c:'kc-rd',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('SharingSet','SharingLinkCreated')|where ExternalAccess==true|summarize Count=count()`},k:'Count'},
+    {l:'Bulk Downloads',c:'kc-or',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('FileDownloaded','FileSyncDownloadedFull')|summarize Count=count() by UserId|where Count>100|summarize Count=count()`},k:'Count'},
+    {l:'Files Deleted',c:'kc-yw',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('FileDeleted','FileRecycled')|summarize Count=count()`},k:'Count'},
+    {l:'Permission Changes',c:'kc-or',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('SharingInheritanceBroken','PermissionLevelAdded','SiteCollectionAdminAdded')|summarize Count=count()`},k:'Count'},
+    {l:'Unique Users',c:'kc-bl',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|summarize Count=dcount(UserId)`},k:'Count'},
+  ],
+  def_oci:[
+    {l:'Identity Events (7d)',c:'kc-rd',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'identityControlPlane' or EventType has 'IdentitySignOn'|summarize Count=count()`},k:'Count'},
+    {l:'Sign-ins (7d)',c:'kc-or',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'InteractiveLogin' or EventType has 'AccessApp'|summarize Count=count()`},k:'Count'},
+    {l:'User Changes',c:'kc-yw',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType in ('com.oraclecloud.identityControlPlane.CreateUser','com.oraclecloud.identityControlPlane.UpdateUser','com.oraclecloud.identityControlPlane.AddUserToGroup')|summarize Count=count()`},k:'Count'},
+    {l:'Group Changes',c:'kc-gn',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'Group'|summarize Count=count()`},k:'Count'},
+    {l:'Password Resets',c:'kc-rd',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'Password'|summarize Count=count()`},k:'Count'},
+    {l:'Total OCI Events',c:'kc-bl',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
+  ],
+  // ── CYBERARCHITECTURE SUB-DASHES ────────────────────────────────
+  arch_posture:[
+    {l:'Critical Controls',c:'kc-rd',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`},k:'Count'},
+    {l:'Attack Paths',c:'kc-or',q:{t:'arg',q:`securityresources|where type=='microsoft.security/attackpaths'|summarize Count=count()`},k:'Count'},
+    {l:'Secure Score (%)',c:'kc-cy',q:{t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`},k:'Score'},
+    {l:'Unprotected VMs',c:'kc-yw',q:{t:'arg',q:`Resources|where type=='microsoft.compute/virtualmachines'|extend VMId=tolower(id)|join kind=leftouter(Resources|where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'|where properties.workloadType=='VM'|extend SourceVMId=tolower(tostring(properties.sourceResourceId))|project SourceVMId)on $left.VMId==$right.SourceVMId|where isempty(SourceVMId)|summarize Count=count()`},k:'Count'},
+    {l:'Orphaned Resources',c:'kc-bl',q:{t:'arg',q:`Resources|where(type=='microsoft.compute/disks'and properties.diskState=='Unattached')or(type=='microsoft.network/publicipaddresses'and isnull(properties.ipConfiguration))|summarize Count=count()`},k:'Count'},
+    {l:'Policy NonCompliant',c:'kc-rd',q:{t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Count=count()`},k:'Count'},
+  ],
+  arch_oci:[
+    {l:'K8s Events (7d)',c:'kc-bl',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType startswith 'io.k8s' or EventType startswith 'core.v1' or EventType startswith 'batch.v1'|summarize Count=count()`},k:'Count'},
+    {l:'Integration Events',c:'kc-gn',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'integration'|summarize Count=count()`},k:'Count'},
+    {l:'DB Events',c:'kc-yw',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'Database' or EventType has 'database'|summarize Count=count()`},k:'Count'},
+    {l:'Network Events',c:'kc-cy',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'virtualNetwork' or EventType has 'networkFirewall'|summarize Count=count()`},k:'Count'},
+    {l:'Compute Events',c:'kc-or',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'computeApi'|summarize Count=count()`},k:'Count'},
+    {l:'Total OCI Events',c:'kc-bl',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
+  ],
+  // ── CYBGRC SUB-DASHES ───────────────────────────────────────────
+  grc_governance:[
+    {l:'Total Subscriptions',c:'kc-cy',q:{t:'arg',q:`ResourceContainers|where type=='microsoft.resources/subscriptions'|summarize Count=count()`},k:'Count'},
+    {l:'Shadow Subscriptions',c:'kc-rd',q:{t:'arg',q:`ResourceContainers|where type=='microsoft.resources/subscriptions'|extend MgChain=array_length(properties.managementGroupAncestorsChain)|where MgChain==0 or isnull(MgChain)|summarize Count=count()`},k:'Count'},
+    {l:'Untagged Resources',c:'kc-or',q:{t:'arg',q:`Resources|where type!in('microsoft.resources/subscriptions','microsoft.resources/resourcegroups')|extend TagCount=array_length(bag_keys(tags))|where TagCount==0|summarize Count=count()`},k:'Count'},
+    {l:'Tag Compliance (%)',c:'kc-yw',q:{t:'arg',q:`Resources|where type!in('microsoft.resources/subscriptions','microsoft.resources/resourcegroups')|extend TagCount=array_length(bag_keys(tags))|summarize Total=count(),Tagged=countif(TagCount>=3)|extend Count=round(toreal(Tagged)/Total*100,1)`},k:'Count'},
+    {l:'Management Groups',c:'kc-bl',q:{t:'arg',q:`ResourceContainers|where type=='microsoft.management/managementgroups'|summarize Count=count()`},k:'Count'},
+    {l:'Policy Assignments',c:'kc-gn',q:{t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|summarize Count=dcount(tostring(properties.policyAssignmentId))`},k:'Count'},
+  ],
+  grc_policy:[
+    {l:'Policy Violations',c:'kc-rd',q:{t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Count=count()`},k:'Count'},
+    {l:'Compliant Policies',c:'kc-gn',q:{t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|where properties.complianceState=='Compliant'|summarize Count=count()`},k:'Count'},
+    {l:'Secure Score (%)',c:'kc-cy',q:{t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`},k:'Score'},
+    {l:'Critical Controls',c:'kc-rd',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`},k:'Count'},
+    {l:'Quick Win Controls',c:'kc-yw',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|where properties.metadata.implementationEffort=='Low'|summarize Count=count()`},k:'Count'},
+    {l:'Attack Paths',c:'kc-or',q:{t:'arg',q:`securityresources|where type=='microsoft.security/attackpaths'|summarize Count=count()`},k:'Count'},
+  ],
+  grc_access:[
+    {l:'Privileged Roles',c:'kc-rd',q:{t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|extend RoleId=tolower(tostring(properties.roleDefinitionId))|where RoleId has_any ('8e3af657','b24988ac','18d7d88d','fb1c8493')|summarize Count=count()`},k:'Count'},
+    {l:'Guest Principals',c:'kc-or',q:{t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|where properties.principalType in ('Guest','ForeignGroup')|summarize Count=count()`},k:'Count'},
+    {l:'Total Assignments',c:'kc-bl',q:{t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|summarize Count=count()`},k:'Count'},
+    {l:'CA Policy Failures (7d)',c:'kc-yw',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|mv-expand CAPolicy=todynamic(ConditionalAccessPolicies)|where tostring(CAPolicy.result)=='failure'|summarize Count=count()`},k:'Count'},
+    {l:'UEBA Anomalies',c:'kc-or',q:{t:'la',q:`BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Count=count()`},k:'Count'},
+    {l:'RBAC Scope Violations',c:'kc-rd',q:{t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|extend RoleId=tolower(tostring(properties.roleDefinitionId))|extend Scope=tostring(properties.scope)|where RoleId has '8e3af657' and Scope has '/providers/Microsoft.Management/'|summarize Count=count()`},k:'Count'},
+  ],
+  grc_ca:[
+    {l:'Sign-in Failures (7d)',c:'kc-rd',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`},k:'Count'},
+    {l:'Legacy Auth (7d)',c:'kc-or',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ClientAppUsed in ('Exchange ActiveSync','IMAP4','POP3','Authenticated SMTP','Autodiscover')|summarize Count=count()`},k:'Count'},
+    {l:'MFA Success (7d)',c:'kc-gn',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where AuthenticationRequirement=='multiFactorAuthentication'|where ResultType=='0'|summarize Count=count()`},k:'Count'},
+    {l:'CA Policy Failures',c:'kc-yw',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|mv-expand CAPolicy=todynamic(ConditionalAccessPolicies)|where tostring(CAPolicy.result)=='failure'|summarize Count=count()`},k:'Count'},
+    {l:'Unique Locations',c:'kc-bl',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|extend Country=tostring(LocationDetails.countryOrRegion)|summarize Count=dcount(Country)`},k:'Count'},
+    {l:'Sign-in Anomalies',c:'kc-rd',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|summarize FailCount=count() by UserPrincipalName|where FailCount>10|summarize Count=count()`},k:'Count'},
+  ],
+  grc_audit:[
+    {l:'Saviynt Events (30d)',c:'kc-cy',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|summarize Count=count()`},k:'Count'},
+    {l:'SharePoint Admin (7d)',c:'kc-bl',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('SiteCollectionCreated','SiteDeleted','SharingPolicyChanged','SiteLocksChanged')|summarize Count=count()`},k:'Count'},
+    {l:'OCI Identity (7d)',c:'kc-gn',q:{t:'la',q:`OCI_LogsV2_CL|where TimeGenerated>=ago(7d)|where EventType has 'identityControlPlane'|summarize Count=count()`},k:'Count'},
+    {l:'Saviynt Logins (30d)',c:'kc-yw',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|where ActionTaken=='Login'|summarize Count=count()`},k:'Count'},
+    {l:'Entitlement Changes',c:'kc-or',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|where ObjectType in ('ENTITLEMENTS','ROLE')|where ActionTaken!='Show'|summarize Count=count()`},k:'Count'},
+    {l:'Permission Changes SP',c:'kc-rd',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('SharingInheritanceBroken','PermissionLevelAdded','SiteCollectionAdminAdded')|summarize Count=count()`},k:'Count'},
+  ],
+  grc_regulatory:[
+    {l:'Critical Controls',c:'kc-rd',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`},k:'Count'},
+    {l:'Secure Score (%)',c:'kc-cy',q:{t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`},k:'Score'},
+    {l:'Policy Violations',c:'kc-rd',q:{t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Count=count()`},k:'Count'},
+    {l:'Quick Wins',c:'kc-gn',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|where properties.metadata.implementationEffort=='Low'|summarize Count=count()`},k:'Count'},
+    {l:'Attack Paths',c:'kc-or',q:{t:'arg',q:`securityresources|where type=='microsoft.security/attackpaths'|summarize Count=count()`},k:'Count'},
+    {l:'Unhealthy Controls',c:'kc-yw',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|summarize Count=count()`},k:'Count'},
+  ],
+
 };
 async function loadKPIs(id){
   const strip=document.getElementById('kpi-'+id);
@@ -952,8 +1076,8 @@ d5:[
 | extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/'
 | order by FailureCount desc | take 500`},
   {label:'Incident MTTD/MTTR',type:'la',query:`SecurityIncident
-| where TimeGenerated >= ago(30d)
-| extend MTTD=datetime_diff('minute',FirstActivityTime,CreatedTime)
+| where TimeGenerated {TimeRange}
+| extend MTTD=abs(datetime_diff('minute',FirstActivityTime,CreatedTime))
 | extend MTTR=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
 | summarize TotalIncidents=count(), AvgMTTD_min=round(avg(MTTD),0), AvgMTTR_min=round(avg(MTTR),0), Closed=countif(Status=='Closed'), Open=countif(Status!='Closed') by Severity
 | extend SentinelLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
@@ -1876,19 +2000,19 @@ d11:[
 ],
 d10:[
   {label:'GitHub Overview',type:'la',query:`union
-  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|summarize Value=count()|extend Label="Total Events (30d)"),
-  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where isnotempty(Actor) and ActorIsBot==false|summarize Value=dcount(Actor)|extend Label="Unique Human Actors"),
-  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where isnotempty(Repo)|summarize Value=dcount(Repo)|extend Label="Unique Repos"),
-  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where isnotempty(Org)|summarize Value=dcount(Org)|extend Label="GitHub Orgs")
+  (GitHubAuditLogsV2_CL|where TimeGenerated {TimeRange}|summarize Value=count()|extend Label="Total Events"),
+  (GitHubAuditLogsV2_CL|where TimeGenerated {TimeRange}|where isnotempty(Actor) and ActorIsBot==false|summarize Value=dcount(Actor)|extend Label="Unique Human Actors"),
+  (GitHubAuditLogsV2_CL|where TimeGenerated {TimeRange}|where isnotempty(Repo)|summarize Value=dcount(Repo)|extend Label="Unique Repos"),
+  (GitHubAuditLogsV2_CL|where TimeGenerated {TimeRange}|where isnotempty(Org)|summarize Value=dcount(Org)|extend Label="GitHub Orgs")
 | extend PortalLink='https://github.com/orgs/eagle-org/security'
 | project Label,Value`},
   {label:'Security Alerts',type:'la',query:`union
-  (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='repository_vulnerability_alert.create'|summarize Created=count(),Resolved=countif(Action=='repository_vulnerability_alert.resolve') by Repo,Org
+  (GitHubAuditLogsV2_CL|where TimeGenerated {TimeRange}|where Action=='repository_vulnerability_alert.create'|summarize Created=count(),Resolved=countif(Action=='repository_vulnerability_alert.resolve') by Repo,Org
   |extend Outstanding=Created-Resolved|order by Created desc)
 | extend PortalLink=strcat('https://github.com/',Org,'/',Repo,'/security/dependabot')
 | project Repo,Org,Created,Resolved,Outstanding,PortalLink`},
   {label:'Workflow & Secrets',type:'la',query:`GitHubAuditLogsV2_CL
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | where isnotempty(SecretsPassed)
 | mv-expand SecretName=todynamic(SecretsPassed)
 | extend SecretStr=tostring(SecretName)
@@ -1897,7 +2021,7 @@ d10:[
 | summarize Count=count(),Repos=make_set(Repo,20), PortalLink=any(PortalLink) by SecretStr,SecretCategory
 | order by Count desc`},
   {label:'Access & Policy',type:'la',query:`GitHubAuditLogsV2_CL
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | where Action in ("protected_branch.policy_override","org.add_member","org.remove_member","org.invite_member","repo.add_member","repo.remove_member","team.add_member","team.remove_member","repo.create","repo.destroy","org_credential_authorization.grant","org_credential_authorization.deauthorize")
 | extend PortalLink='https://github.com/orgs/eagle-org/audit-log'
 | project TimeGenerated,Action,Actor,User=tostring(column_ifexists('User','')),Org,Repo,Email=tostring(column_ifexists('Email','')),PortalLink
@@ -1927,12 +2051,12 @@ d7:[
 | summarize IngestedGB=round(sum(Quantity)/1024,3), RecordCount=sum(Quantity), PortalLink=any(PortalLink) by DataType
 | order by IngestedGB desc | take 100`},
   {label:'Ingestion Trend',type:'la',viz:'timechart',query:`Usage
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | summarize IngestedGB=round(sum(Quantity)/1024,2) by bin(TimeGenerated,1d)
 | extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/4'
 | order by TimeGenerated asc`},
   {label:'Ingestion Anomalies',type:'la',query:`Usage
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | summarize DailyGB=sum(Quantity)/1024 by bin(TimeGenerated,1d), DataType
 | summarize AvgGB=avg(DailyGB), StdDevGB=stdev(DailyGB), LastDayGB=take_any(DailyGB) by DataType
 | extend ZScore=round((LastDayGB-AvgGB)/StdDevGB,2)
@@ -1960,7 +2084,7 @@ d7:[
 "OCI_LogsV2_CL","Oracle Cloud Infrastructure","Watchlist","Microsoft Sentinel",
 ]
 | join kind=rightouter(
-    Usage|where TimeGenerated>=ago(7d)
+    Usage|where TimeGenerated {TimeRange}
     |summarize LastIngestion=max(TimeGenerated),TotalGB=round(sum(Quantity)/1024,3) by DataType
 )on DataType
 | extend ConnectorName=coalesce(ConnectorName,strcat('Unknown - ',DataType))
@@ -1975,19 +2099,19 @@ d7:[
 | summarize AlertCount=count(), LastFired=max(TimeGenerated), AvgPerDay=round(count()/7.0,1), PortalLink=any(PortalLink) by AlertName, ProductName, AlertSeverity
 | order by AlertCount desc | take 200`},
   {label:'Incident Trend',type:'la',viz:'timechart',query:`SecurityIncident
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
 | summarize IncidentCount=count(), PortalLink=any(PortalLink) by bin(TimeGenerated,1d), Severity
 | order by TimeGenerated asc`},
   {label:'Incident MTTD/MTTR',type:'la',query:`SecurityIncident
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | extend MTTD_min=datetime_diff('minute',FirstActivityTime,CreatedTime)
 | extend MTTR_min=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
 | summarize TotalIncidents=count(), AvgMTTD_min=round(avg(MTTD_min),0), AvgMTTR_min=round(avg(MTTR_min),0), Closed=countif(Status=='Closed'), Active=countif(Status=='Active') by Severity
 | extend SentinelLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
 | order by Severity asc`},
   {label:'Alert Volume',type:'la',viz:'timechart',query:`SecurityAlert
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/6'
 | summarize AlertCount=count(), PortalLink=any(PortalLink) by bin(TimeGenerated,1d), ProductName
 | order by TimeGenerated asc`},
@@ -2070,12 +2194,12 @@ d6:[
 | project DeviceName, OSPlatform, OSVersion, OnboardingStatus, JoinType, PublicIP, DeviceCategory, DeviceSubtype, LastSeen=Timestamp, MDELink
 | order by OnboardingStatus asc, OSPlatform asc, DeviceName asc | take 2000`},
   {label:'Incident Summary',type:'la',query:`SecurityIncident
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
 | summarize Total=count(), High=countif(Severity=='High'), Medium=countif(Severity=='Medium'), Low=countif(Severity=='Low'), Closed=countif(Status=='Closed'), Active=countif(Status=='Active'), PortalLink=any(PortalLink) by bin(TimeGenerated,1d)
 | order by TimeGenerated desc | take 90`},
   {label:'Incident Detail',type:'la',query:`SecurityIncident
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | extend MTTR_min=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
 | project IncidentName, IncidentNumber, Severity, Status, Title, CreatedTime, ClosedTime, MTTR_min, Classification, ClassificationReason, ProviderName, IncidentUrl
 | order by CreatedTime desc | take 500`},
@@ -2091,7 +2215,7 @@ d6:[
 | summarize IngestedGB=round(sum(Quantity)/1024,3), PortalLink=any(PortalLink) by DataType
 | order by IngestedGB desc`},
   {label:'Alert Volume',type:'la',viz:'timechart',query:`SecurityAlert
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | where ProductName has 'Defender'
 | extend PortalLink='https://security.microsoft.com/alerts'
 | summarize AlertCount=count(), PortalLink=any(PortalLink) by bin(TimeGenerated,1d), AlertSeverity
@@ -2120,26 +2244,26 @@ PANELS.grc_regulatory= PANELS.d5.filter(p=>['Compliance','Secure Score','Quick W
 
 PANELS.def_exec=[
   {label:'Incident Overview',type:'la',query:`SecurityIncident
-| where TimeGenerated >= ago(7d)
+| where TimeGenerated {TimeRange}
 | summarize TotalIncidents=count(),Active=countif(Status=='Active'),High=countif(Severity=='High'),Critical=countif(Severity=='Critical'),AvgMTTD=round(avg(datetime_diff('minute',FirstActivityTime,CreatedTime)),0) by bin(TimeGenerated,1d)
 | extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
 | order by TimeGenerated asc`},
   {label:'Identity Risk',type:'la',query:`union
-  (SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Value=count()|extend Label='Sign-in Failures (7d)'),
-  (BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Value=count()|extend Label='UEBA Anomalies (7d)'),
-  (SigninLogs|where TimeGenerated>=ago(7d)|where RiskLevelDuringSignIn in ('high','medium')|summarize Value=dcount(UserPrincipalName)|extend Label='Risky Sign-in Users (7d)'),
-  (AADServicePrincipalSignInLogs|where TimeGenerated>=ago(7d)|where ResultType!=0|summarize Value=count()|extend Label='SP Sign-in Failures (7d)')
+  (SigninLogs|where TimeGenerated {TimeRange}|where ResultType!='0'|summarize Value=count()|extend Label='Sign-in Failures (7d)'),
+  (BehaviorAnalytics|where TimeGenerated {TimeRange}|where InvestigationPriority>=5|summarize Value=count()|extend Label='UEBA Anomalies (7d)'),
+  (SigninLogs|where TimeGenerated {TimeRange}|where RiskLevelDuringSignIn in ('high','medium')|summarize Value=dcount(UserPrincipalName)|extend Label='Risky Sign-in Users (7d)'),
+  (AADServicePrincipalSignInLogs|where TimeGenerated {TimeRange}|where ResultType!=0|summarize Value=count()|extend Label='SP Sign-in Failures (7d)')
 | project Label, Value
 | extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SecurityMenuBlade/~/RiskyUsers/menuId/RiskyUsers/fromNav/'`},
   {label:'Email & DNS Threats',type:'la',query:`union
-  (ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Value=count()|extend Label='Emails Blocked by Proofpoint'),
-  (ProofPointTAPMessagesDelivered_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Value=count()|extend Label='Threats Delivered'),
-  (Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Value=count()|extend Label='DNS Requests Blocked'),
-  (Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Value=dcount(Domain_s)|extend Label='Unique Malicious Domains')
+  (ProofPointTAPMessagesBlocked_CL|where TimeGenerated {TimeRange}|summarize Value=count()|extend Label='Emails Blocked by Proofpoint'),
+  (ProofPointTAPMessagesDelivered_CL|where TimeGenerated {TimeRange}|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Value=count()|extend Label='Threats Delivered'),
+  (Cisco_Umbrella_dns_CL|where TimeGenerated {TimeRange}|where Action_s=='Blocked'|summarize Value=count()|extend Label='DNS Requests Blocked'),
+  (Cisco_Umbrella_dns_CL|where TimeGenerated {TimeRange}|where Action_s=='Blocked'|summarize Value=dcount(Domain_s)|extend Label='Unique Malicious Domains')
 | project Label, Value
 | extend PortalLink='https://threatinsight.proofpoint.com'`},
   {label:'Alert Trend (30d)',type:'la',viz:'timechart',query:`SecurityAlert
-| where TimeGenerated>=ago(30d)
+| where TimeGenerated {TimeRange}
 | summarize Count=count() by bin(TimeGenerated,1d), AlertSeverity
 | extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/6'
 | order by TimeGenerated asc`},
@@ -2297,6 +2421,7 @@ function updateSubLabel() {
 
 function applySubFilter() {
   toggleSubDropdown();
+  if(aDept==='home'){loadHomeKPIs();return;}
   // clear all cached data
   Object.keys(PC).forEach(k=>delete PC[k]);
   // destroy all charts
@@ -2357,8 +2482,8 @@ function onAuth(){
     buildDashSection(id);
     if(PANELS[id])buildDash(id,PANELS[id]);
   });
-  loadHomeKPIs();
   loadSubscriptions();
+  setTimeout(loadHomeKPIs, 500);
 }
 window.addEventListener('DOMContentLoaded',async()=>{
   if(NCFG)document.getElementById('cfgwarn').style.display='block';
