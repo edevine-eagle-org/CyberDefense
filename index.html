@@ -568,7 +568,7 @@ async function loadKPIs(id){
 // ── PANEL DEFINITIONS ─────────────────────────────────────────
 const PANELS={
 d5:[
-  {label:'Identity & PIM',type:'arg',query:`Resources
+  {label:'Identity & PIM',type:'arg',query:`AuthorizationResources
 | where type == 'microsoft.authorization/roleassignments'
 | extend PrincipalType = tostring(properties.principalType)
 | extend RoleId = tolower(tostring(properties.roleDefinitionId))
@@ -811,7 +811,7 @@ d1:[
 | extend ScopeLevel=case(Scope matches regex '^/providers/Microsoft.Management','Management Group',Scope matches regex '^/subscriptions/[^/]+$','Subscription',Scope matches regex '^/subscriptions/[^/]+/resourceGroups/[^/]+$','Resource Group',Scope=='/','Tenant Root','Resource')
 | summarize Count=count() by PrincipalType,ScopeLevel
 | order by PrincipalType asc,ScopeLevel asc`},
-  {label:'Privileged Roles',type:'arg',query:`Resources
+  {label:'Privileged Roles',type:'arg',query:`AuthorizationResources
 | where type=='microsoft.authorization/roleassignments'
 | extend PrincipalType=tostring(properties.principalType)
 | extend RoleId=tolower(tostring(properties.roleDefinitionId))
@@ -821,7 +821,7 @@ d1:[
 | extend IAMLink=strcat('https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade/subscriptionId/',subscriptionId)
 | project RoleName,PrincipalType,Scope,IAMLink,SubscriptionId=subscriptionId
 | order by RoleName asc | take 1000`},
-  {label:'Guest Principals',type:'arg',query:`Resources
+  {label:'Guest Principals',type:'arg',query:`AuthorizationResources
 | where type=='microsoft.authorization/roleassignments'
 | where properties.principalType in ('Guest','ForeignGroup')
 | extend PrincipalType=tostring(properties.principalType)
