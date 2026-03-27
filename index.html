@@ -2160,8 +2160,7 @@ d6:[
 | summarize arg_max(Timestamp,*)by DeviceId
 | summarize TotalDevices=count(), Onboarded=countif(OnboardingStatus=='Onboarded'), CanBeOnboarded=countif(OnboardingStatus=='Can be onboarded'), InsufficientInfo=countif(OnboardingStatus=='Insufficient info'), Windows=countif(OSPlatform startswith 'Windows'), Linux=countif(OSPlatform startswith 'Linux'), macOS=countif(OSPlatform startswith 'macOS')
 | extend CoveragePct=round(todouble(Onboarded)/TotalDevices*100,1)
-| extend PortalLink='https://security.microsoft.com/machines'
-| project TotalDevices, Onboarded, CoveragePct, CanBeOnboarded, InsufficientInfo, Windows, Linux, macOS, PortalLink`},
+| project TotalDevices, Onboarded, CoveragePct, CanBeOnboarded, InsufficientInfo, Windows, Linux, macOS`},
   {label:'High Exposure Devices',type:'la',query:`DeviceInfo
 | where TimeGenerated {TimeRange}
 | summarize arg_max(TimeGenerated,*)by DeviceName
