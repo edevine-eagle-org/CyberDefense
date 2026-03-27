@@ -624,7 +624,7 @@ async function loadHomeKPIs(){
 async function loadTacticalOps(){
   const $ = id => document.getElementById(id);
   const fmt = n => Number(n||0).toLocaleString();
-  const safe = async fn => { try{ return await fn(); }catch(e){ return null; } };
+  const safe = async fn => { try{ return await fn(); }catch(e){ console.warn('TacOps query failed:',e?.message||e); return null; } };
 
   // Fire all queries in parallel
   const [inc, threats, feed, alerts, emails, dns, m0, m1, m2, m3, m4, m5] = await Promise.allSettled([
@@ -643,6 +643,18 @@ async function loadTacticalOps(){
   ]);
 
   const get = r => r.status==='fulfilled' ? r.value : null;
+
+  // Replace all still-loading indicators with 0 after a safety timeout
+  setTimeout(()=>{
+    ['tacBigNum','tacM0','tacM1','tacM2','tacM3','tacM4','tacM5'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el&&el.classList.contains('ldg')){el.textContent='—';el.classList.remove('ldg');}
+    });
+    ['tacThreatList','tacLiveFeed','tacEmailFeed','tacDnsFeed'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el&&el.querySelector&&el.innerHTML.includes('LOADING')){el.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">NO DATA</div>';}
+    });
+  }, 8000);
 
   // Big active incident count
   const incData = get(inc);
@@ -757,7 +769,7 @@ async function loadHomeIncidents(){
   }catch(e){const el=document.getElementById('home-incidents-list');if(el)el.innerHTML='<div class="sbox" style="padding:10px">Unable to load</div>';}
 }
 
-function onTRChange(){Object.keys(PC).forEach(k=>delete PC[k]);if(aDept!=='home'){refreshAct();if(aDash)loadKPIs(aDash);}else{loadHomeKPIs();}}
+function onTRChange(){Object.keys(PC).forEach(k=>delete PC[k]);if(aDept!=='home'){refreshAct();if(aDash)loadKPIs(aDash);}else{loadHomeKPIs();loadTacticalOps();}}
 
 // ── DEPT CONFIG ───────────────────────────────────────────────
 const DEPT_CONFIG={
@@ -2687,6 +2699,7 @@ function onAuth(){
   });
   loadSubscriptions();
   setTimeout(loadHomeKPIs, 500);
+  setTimeout(loadTacticalOps, 1200);
 }
 window.addEventListener('DOMContentLoaded',async()=>{
   if(NCFG)document.getElementById('cfgwarn').style.display='block';
