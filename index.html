@@ -1335,7 +1335,7 @@ d5:[
 | extend MTTD=abs(datetime_diff('minute',FirstActivityTime,CreatedTime))
 | extend MTTR=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
 | summarize TotalIncidents=count(), AvgMTTD_min=round(avg(MTTD),0), AvgMTTR_min=round(avg(MTTR),0), Closed=countif(Status=='Closed'), Open=countif(Status!='Closed') by Severity
-| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Incidents/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/3/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
 | order by Severity asc`},
   {label:'Quick Wins',type:'arg',query:`securityresources
 | where type=='microsoft.security/assessments'
@@ -1396,14 +1396,14 @@ az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscrip
 | extend ScoreMax = round(todouble(properties.score.max),2)
 | extend ScorePct = round(todouble(properties.score.percentage)*100,1)
 | extend Environment = tostring(properties.environment)
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/SecureScore'
+| extend PortalLink='https://security.microsoft.com/exposure-secure-score?viewid=overview&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020'
 | project DisplayName, ScoreCurrent, ScoreMax, ScorePct, Environment, SubscriptionId=subscriptionId, PortalLink
 | order by ScorePct asc`},
 
   {label:'UEBA Anomalies',type:'la',query:`BehaviorAnalytics
 | where TimeGenerated {TimeRange}
 | where InvestigationPriority >= 5
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/EntityBehavior/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_IdentityProtection/RiskyUsers.ReactView'
 | project TimeGenerated, UserName, UserPrincipalName, ActivityType, ActionType,
     SourceIPAddress, SourceIPLocation, InvestigationPriority, PortalLink,
     UsersInsights, DevicesInsights, ActivityInsights
@@ -1423,7 +1423,7 @@ az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscrip
     Total = count()
     by PolicyName
 | extend SuccessPct = round(todouble(Success)/Total*100,1)
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_ConditionalAccess/ConditionalAccessBlade/~/Policies'
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_ConditionalAccess/ConditionalAccessBlade/~/Policies/menuId//fromNav/Identity'
 | order by Total desc
 | take 100`},
 
@@ -1437,7 +1437,7 @@ az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscrip
     FailureCount = countif(ResultType != 0)
     by ServicePrincipalName, ServicePrincipalId, AppId
 | extend FailurePct = round(todouble(FailureCount)/SignInCount*100,1)
-| extend PortalLink=strcat('https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ApplicationDetailsMenuBlade/~/SignIns/appId/',AppId)
+| extend PortalLink=strcat('https://entra.microsoft.com/#view/Microsoft_AAD_IAM/StartboardApplicationsMenuBlade/~/AppAppsPreview',AppId)
 | order by FailureCount desc
 | take 200`},
 ],
@@ -1516,14 +1516,14 @@ d1:[
 | where ResultType!='0'
 | extend FailureReason=tostring(Status.failureReason)
 | summarize FailureCount=count(),UniqueIPs=dcount(IPAddress) by UserPrincipalName,AppDisplayName,FailureReason,ErrorCode=ResultType
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/SignIns'
 | order by FailureCount desc | take 500`},
   {label:'Legacy Auth',type:'la',query:`SigninLogs
 | where TimeGenerated {TimeRange}
 | where ClientAppUsed in ('Exchange ActiveSync','Exchange Online PowerShell','Exchange Web Services','IMAP4','MAPI Over HTTP','Offline Address Book','Other clients','POP3','Reporting Web Services','Authenticated SMTP','Autodiscover')
 | where ResultType=='0'
 | summarize Count=count() by bin(TimeGenerated,1d),ClientAppUsed
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/SignIns'
 | order by TimeGenerated asc`},
   {label:'Geo Distribution',type:'la',query:`SigninLogs
 | where TimeGenerated {TimeRange}
@@ -1531,7 +1531,7 @@ d1:[
 | extend City=tostring(LocationDetails.city)
 | extend IsSuccess=ResultType=='0'
 | summarize TotalLogins=count(),Successes=countif(IsSuccess),Failures=countif(not(IsSuccess)),UniqueUsers=dcount(UserPrincipalName) by Country,City
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/SignIns'
 | order by TotalLogins desc | take 100`},
   {label:'Shadow Subscriptions',type:'arg',query:`ResourceContainers
 | where type=='microsoft.resources/subscriptions'
@@ -2300,13 +2300,13 @@ d7:[
 | order by HealthStatus desc, Failures desc, SentinelResourceName asc | take 500`},
   {label:'Ingestion by Table',type:'la',query:`Usage
 | where TimeGenerated {TimeRange}
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Logs/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
 | summarize IngestedGB=round(sum(Quantity)/1024,3), RecordCount=sum(Quantity), PortalLink=any(PortalLink) by DataType
 | order by IngestedGB desc | take 100`},
   {label:'Ingestion Trend',type:'la',viz:'timechart',query:`Usage
 | where TimeGenerated {TimeRange}
 | summarize IngestedGB=round(sum(Quantity)/1024,2) by bin(TimeGenerated,1d)
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Logs/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
 | order by TimeGenerated asc`},
   {label:'Ingestion Anomalies',type:'la',query:`Usage
 | where TimeGenerated {TimeRange}
@@ -2314,7 +2314,7 @@ d7:[
 | summarize AvgGB=avg(DailyGB), StdDevGB=stdev(DailyGB), LastDayGB=take_any(DailyGB) by DataType
 | extend ZScore=round((LastDayGB-AvgGB)/StdDevGB,2)
 | where abs(ZScore)>2
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Logs/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
 | project DataType, LastDayGB=round(LastDayGB,3), AvgGB=round(AvgGB,3), ZScore, PortalLink
 | order by abs(ZScore) desc | take 50`},
   {label:'Data Connectors',type:'la',query:`datatable(DataType:string,ConnectorName:string)[
@@ -2353,7 +2353,7 @@ d7:[
 | order by AlertCount desc | take 200`},
   {label:'Incident Trend',type:'la',viz:'timechart',query:`SecurityIncident
 | where TimeGenerated {TimeRange}
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Incidents/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/3/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
 | summarize IncidentCount=count(), PortalLink=any(PortalLink) by bin(TimeGenerated,1d), Severity
 | order by TimeGenerated asc`},
   {label:'Incident MTTD/MTTR',type:'la',query:`SecurityIncident
@@ -2361,11 +2361,11 @@ d7:[
 | extend MTTD_min=datetime_diff('minute',FirstActivityTime,CreatedTime)
 | extend MTTR_min=iff(Status=='Closed',datetime_diff('minute',ClosedTime,CreatedTime),int(null))
 | summarize TotalIncidents=count(), AvgMTTD_min=round(avg(MTTD_min),0), AvgMTTR_min=round(avg(MTTR_min),0), Closed=countif(Status=='Closed'), Active=countif(Status=='Active') by Severity
-| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Incidents/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/3/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
 | order by Severity asc`},
   {label:'Alert Volume',type:'la',viz:'timechart',query:`SecurityAlert
 | where TimeGenerated {TimeRange}
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Alerts/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend PortalLink='https://security.microsoft.com/v2/advanced-hunting?tid=d810b06c-d004-4d52-b0aa-4f3581ee7020'
 | summarize AlertCount=count(), PortalLink=any(PortalLink) by bin(TimeGenerated,1d), ProductName
 | order by TimeGenerated asc`},
 
@@ -2422,32 +2422,32 @@ d6:[
     DeviceTvmSoftwareVulnerabilities|where TimeGenerated {TimeRange}
     |summarize CriticalVulns=countif(VulnerabilitySeverityLevel=='Critical'),HighVulns=countif(VulnerabilitySeverityLevel=='High') by DeviceName
 )on DeviceName
-| extend MDELink=strcat('https://security.microsoft.com/machines/',DeviceId)
+| extend MDELink=strcat('https://security.microsoft.com/machines?category=all-devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020/',DeviceId)
 | project DeviceName, OSPlatform, OSVersion, CriticalVulns, HighVulns, LastSeen=TimeGenerated, MDELink
 | order by CriticalVulns desc, HighVulns desc | take 500`},
   {label:'Not Onboarded',type:'la',query:`DeviceInfo
 | where Timestamp>=ago(7d)
 | summarize arg_max(Timestamp,*)by DeviceId
 | where OnboardingStatus!='Onboarded'
-| extend MDELink=strcat('https://security.microsoft.com/machines/',DeviceId)
+| extend MDELink=strcat('https://security.microsoft.com/machines?category=all-devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020/',DeviceId)
 | project DeviceName, OSPlatform, OSVersion, OnboardingStatus, JoinType, LastSeen=Timestamp, MDELink
 | order by OnboardingStatus asc, OSPlatform asc | take 1000`},
   {label:'Excluded Devices',type:'la',query:`DeviceInfo
 | where Timestamp>=ago(7d)
 | summarize arg_max(Timestamp,*)by DeviceId
 | where OnboardingStatus=='Insufficient info'
-| extend MDELink=strcat('https://security.microsoft.com/machines/',DeviceId)
+| extend MDELink=strcat('https://security.microsoft.com/machines?category=all-devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020/',DeviceId)
 | project DeviceName, OSPlatform, OSVersion, OnboardingStatus, JoinType, LastSeen=Timestamp, MDELink
 | order by OSPlatform asc, DeviceName asc | take 1000`},
   {label:'Full Device Inventory',type:'la',query:`DeviceInfo
 | where Timestamp>=ago(7d)
 | summarize arg_max(Timestamp,*)by DeviceId
-| extend MDELink=strcat('https://security.microsoft.com/machines/',DeviceId)
+| extend MDELink=strcat('https://security.microsoft.com/machines?category=all-devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020/',DeviceId)
 | project DeviceName, OSPlatform, OSVersion, OnboardingStatus, JoinType, PublicIP, DeviceCategory, DeviceSubtype, LastSeen=Timestamp, MDELink
 | order by OnboardingStatus asc, OSPlatform asc, DeviceName asc | take 2000`},
   {label:'Incident Summary',type:'la',query:`SecurityIncident
 | where TimeGenerated {TimeRange}
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Incidents/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/3/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
 | summarize Total=count(), High=countif(Severity=='High'), Medium=countif(Severity=='Medium'), Low=countif(Severity=='Low'), Closed=countif(Status=='Closed'), Active=countif(Status=='Active'), PortalLink=any(PortalLink) by bin(TimeGenerated,1d)
 | order by TimeGenerated desc | take 90`},
   {label:'Incident Detail',type:'la',query:`SecurityIncident
@@ -2463,7 +2463,7 @@ d6:[
   {label:'MDE Ingestion',type:'la',query:`Usage
 | where TimeGenerated {TimeRange}
 | where DataType in ('DeviceInfo','DeviceNetworkEvents','DeviceProcessEvents','DeviceFileEvents','DeviceRegistryEvents','DeviceLogonEvents','DeviceAlertEvents','DeviceTvmSoftwareVulnerabilities')
-| extend PortalLink='https://security.microsoft.com/v2/advanced-hunting'
+| extend PortalLink='https://security.microsoft.com/v2/advanced-hunting?tid=d810b06c-d004-4d52-b0aa-4f3581ee7020'
 | summarize IngestedGB=round(sum(Quantity)/1024,3), PortalLink=any(PortalLink) by DataType
 | order by IngestedGB desc`},
   {label:'Alert Volume',type:'la',viz:'timechart',query:`SecurityAlert
@@ -2498,7 +2498,7 @@ PANELS.def_exec=[
   {label:'Incident Overview',type:'la',query:`SecurityIncident
 | where TimeGenerated {TimeRange}
 | summarize TotalIncidents=count(),Active=countif(Status=='Active'),High=countif(Severity=='High'),Critical=countif(Severity=='Critical'),AvgMTTD=round(avg(datetime_diff('minute',FirstActivityTime,CreatedTime)),0) by bin(TimeGenerated,1d)
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Incidents/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/3/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
 | order by TimeGenerated asc`},
   {label:'Identity Risk',type:'la',query:`union
   (SigninLogs|where TimeGenerated {TimeRange}|where ResultType!='0'|summarize Value=count()|extend Label='Sign-in Failures (7d)'),
@@ -2506,7 +2506,7 @@ PANELS.def_exec=[
   (SigninLogs|where TimeGenerated {TimeRange}|where RiskLevelDuringSignIn in ('high','medium')|summarize Value=dcount(UserPrincipalName)|extend Label='Risky Sign-in Users (7d)'),
   (AADServicePrincipalSignInLogs|where TimeGenerated {TimeRange}|where ResultType!=0|summarize Value=count()|extend Label='SP Sign-in Failures (7d)')
 | project Label, Value
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SecurityMenuBlade/~/Overview'`},
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_IdentityProtection/RiskyUsers.ReactView'`},
   {label:'Email & DNS Threats',type:'la',query:`union
   (ProofPointTAPMessagesBlocked_CL|where TimeGenerated {TimeRange}|summarize Value=count()|extend Label='Emails Blocked by Proofpoint'),
   (ProofPointTAPMessagesDelivered_CL|where TimeGenerated {TimeRange}|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Value=count()|extend Label='Threats Delivered'),
@@ -2517,7 +2517,7 @@ PANELS.def_exec=[
   {label:'Alert Trend (30d)',type:'la',viz:'timechart',query:`SecurityAlert
 | where TimeGenerated {TimeRange}
 | summarize Count=count() by bin(TimeGenerated,1d), AlertSeverity
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Alerts/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'
+| extend PortalLink='https://security.microsoft.com/v2/advanced-hunting?tid=d810b06c-d004-4d52-b0aa-4f3581ee7020'
 | order by TimeGenerated asc`},
 ];
 
@@ -2528,7 +2528,7 @@ PANELS.arch_exec=[
 | extend IsUnhealthyHigh = (type=='microsoft.security/assessments' and properties.status.code=='Unhealthy' and properties.metadata.severity in ('High','Critical'))
 | extend IsAttackPath = type=='microsoft.security/attackpaths'
 | summarize AvgSecureScore=round(avg(ScorePct),1), CriticalControls=countif(IsUnhealthyHigh), AttackPaths=countif(IsAttackPath)
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/Recommendations'
+| extend PortalLink='https://security.microsoft.com/exposure-recommendations?tabId=Devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020'
 | project AvgSecureScore, CriticalControls, AttackPaths, PortalLink`},
   {label:'Infrastructure Risk',type:'arg',query:`Resources
 | where type in ('microsoft.compute/virtualmachines','microsoft.storage/storageaccounts','microsoft.web/sites','microsoft.compute/disks','microsoft.network/publicipaddresses')
@@ -2537,13 +2537,13 @@ PANELS.arch_exec=[
 | extend IsNoHttps = (type=='microsoft.web/sites' and properties.httpsOnly!=true)
 | extend IsOrphaned = ((type=='microsoft.compute/disks' and properties.diskState=='Unattached') or (type=='microsoft.network/publicipaddresses' and isnull(properties.ipConfiguration)))
 | summarize TotalVMs=countif(IsVM), PublicStorage=countif(IsPublicStorage), NoHttpsApps=countif(IsNoHttps), OrphanedResources=countif(IsOrphaned)
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/Inventory',type:'arg',query:`securityresources
+| extend PortalLink='https://security.microsoft.com/machines?category=all-devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020?category=all-devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020',type:'arg',query:`securityresources
 | where type=='microsoft.security/assessments'
 | where properties.status.code=='Unhealthy'
 | extend Severity=tostring(properties.metadata.severity)
 | extend Category=tostring(properties.metadata.categories[0])
 | summarize Count=count() by Severity, Category
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/RegulatoryCompliance'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
 | order by Count desc | take 50`},
   {label:'Secure Score by Subscription',type:'arg',query:`securityresources
 | where type=='microsoft.security/securescores'
@@ -2551,7 +2551,7 @@ PANELS.arch_exec=[
 | extend ScoreCurrent=round(todouble(properties.score.current),2)
 | extend ScoreMax=round(todouble(properties.score.max),2)
 | extend Environment=tostring(properties.environment)
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/SecureScore'
+| extend PortalLink='https://security.microsoft.com/exposure-secure-score?viewid=overview&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020'
 | project SubscriptionId=subscriptionId, ScorePct, ScoreCurrent, ScoreMax, Environment, PortalLink
 | order by ScorePct asc`},
 ];
@@ -2586,7 +2586,7 @@ PANELS.grc_exec=[
 | extend Severity=tostring(properties.metadata.severity)
 | summarize Healthy=countif(ComplianceState=='Healthy'),Unhealthy=countif(ComplianceState=='Unhealthy'),Total=count() by Category,Severity
 | extend CompliancePct=round(toreal(Healthy)/Total*100,1)
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/RegulatoryCompliance'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
 | order by CompliancePct asc`},
 ];
 
