@@ -1267,16 +1267,16 @@ d1:[
 | where TimeGenerated {TimeRange}
 | where ClientAppUsed in ('Exchange ActiveSync','Exchange Online PowerShell','Exchange Web Services','IMAP4','MAPI Over HTTP','Offline Address Book','Other clients','POP3','Reporting Web Services','Authenticated SMTP','Autodiscover')
 | where ResultType=='0'
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/'
 | summarize Count=count() by bin(TimeGenerated,1d),ClientAppUsed
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/'
 | order by TimeGenerated asc`},
   {label:'Geo Distribution',type:'la',query:`SigninLogs
 | where TimeGenerated {TimeRange}
 | extend Country=tostring(LocationDetails.countryOrRegion)
 | extend City=tostring(LocationDetails.city)
 | extend IsSuccess=ResultType=='0'
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/'
 | summarize TotalLogins=count(),Successes=countif(IsSuccess),Failures=countif(not(IsSuccess)),UniqueUsers=dcount(UserPrincipalName) by Country,City
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/'
 | order by TotalLogins desc | take 100`},
   {label:'Shadow Subscriptions',type:'arg',query:`ResourceContainers
 | where type=='microsoft.resources/subscriptions'
