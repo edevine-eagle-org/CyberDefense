@@ -584,7 +584,7 @@ d5:[
     RoleId has 'acdd72a7-3385-48ef-bd42-f606fba81ae7','Reader',
     RoleId has '7f951dda-4ed3-4680-a7ca-43fe172d538d','AcrPull',
     tostring(split(RoleId,'/')[-1]))
-| extend IAMLink = strcat('https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade/subscriptionId/',subscriptionId)
+| extend IAMLink = strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',subscriptionId,'/iam')
 | project RoleName, PrincipalType, ScopeLevel, Scope, IAMLink, SubscriptionId=subscriptionId
 | order by RoleName asc, PrincipalType asc | take 1000`},
   {label:'Managed Identities',type:'arg',query:`Resources
@@ -833,7 +833,7 @@ d1:[
     RoleId has 'e8611ab8-c189-46e8-94e1-60213ab1f814','Privileged Role Administrator',
     'Other')
 | where RoleName != 'Other'
-| extend IAMLink=strcat('https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade/subscriptionId/',subscriptionId)
+| extend IAMLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',subscriptionId,'/iam')
 | project RoleName,PrincipalType,Scope,IAMLink,SubscriptionId=subscriptionId
 | order by RoleName asc | take 1000`},
   {label:'Guest Principals',type:'arg',query:`AuthorizationResources
@@ -842,7 +842,7 @@ d1:[
 | extend PrincipalType=tostring(properties.principalType)
 | extend RoleId=tolower(tostring(properties.roleDefinitionId))
 | extend Scope=tostring(properties.scope)
-| extend IAMLink=strcat('https://portal.azure.com/#blade/Microsoft_Azure_AD/IAMBlade/subscriptionId/',subscriptionId)
+| extend IAMLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',subscriptionId,'/iam')
 | project PrincipalType,RoleId,Scope,IAMLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
 | order by PrincipalType asc | take 1000`},
   {label:'Policy Compliance',type:'arg',query:`PolicyResources
