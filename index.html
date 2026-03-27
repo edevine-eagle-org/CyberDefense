@@ -1901,9 +1901,8 @@ d11:[
 | extend SharedWith = tostring(UserSharedWith)
 | extend SharingType = tostring(SharingType)
 | extend IsExternal = ExternalAccess == true
-| extend PortalLink = tostring(Site_Url)
-| extend FileLink = tostring(OfficeObjectId)
-| project TimeGenerated, Operation, UserId, SharedWith, SharingType, IsExternal, FileName, SiteUrl, PortalLink, FileLink
+| extend PortalLink = iff(isnotempty(tostring(OfficeObjectId)) and tostring(OfficeObjectId) startswith 'https', tostring(OfficeObjectId), tostring(Site_Url))
+| project TimeGenerated, Operation, UserId, SharedWith, SharingType, IsExternal, FileName, SiteUrl, PortalLink
 | order by TimeGenerated desc | take 500`},
 
   {label:'Bulk Downloads',type:'la',query:`OfficeActivity
@@ -1936,7 +1935,7 @@ d11:[
     'AddedToGroup','RemovedFromGroup',
     'WebAccessRequestApproverModified','WebMembersCanShareModified')
 | extend SiteUrl = tostring(Site_Url)
-| extend PortalLink = strcat(tostring(Site_Url), '/_layouts/15/user.aspx')
+| extend PortalLink = iff(isnotempty(tostring(OfficeObjectId)) and tostring(OfficeObjectId) startswith 'https', tostring(OfficeObjectId), strcat(tostring(Site_Url),'/_layouts/15/user.aspx'))
 | project TimeGenerated, Operation, UserId, SiteUrl, PortalLink
 | order by TimeGenerated desc | take 500`},
 
@@ -1949,9 +1948,8 @@ d11:[
 | extend SiteUrl = tostring(Site_Url)
 | where FileExt in ('xlsx','xls','csv','pdf','docx','doc','pptx','zip','7z','ps1','py','sh','key','pem','pfx','json','sql')
     or SiteUrl has_any ('security','confidential','restricted','hr','legal','finance','compliance','executive')
-| extend PortalLink = tostring(Site_Url)
-| extend FileLink = tostring(OfficeObjectId)
-| project TimeGenerated, Operation, UserId, FileName, FileExt, SiteUrl, PortalLink, FileLink
+| extend PortalLink = iff(isnotempty(tostring(OfficeObjectId)) and tostring(OfficeObjectId) startswith 'https', tostring(OfficeObjectId), tostring(Site_Url))
+| project TimeGenerated, Operation, UserId, FileName, FileExt, SiteUrl, PortalLink
 | order by TimeGenerated desc | take 500`},
 
   {label:'Anonymous Links',type:'la',query:`OfficeActivity
@@ -1964,9 +1962,8 @@ d11:[
     Operation has 'Company','Company Link',
     Operation has 'Secure','Secure Link',
     Operation has 'Sharing','Sharing Link','Other')
-| extend PortalLink = tostring(Site_Url)
-| extend FileLink = tostring(OfficeObjectId)
-| project TimeGenerated, Operation, LinkType, UserId, FileName, SiteUrl, PortalLink, FileLink
+| extend PortalLink = iff(isnotempty(tostring(OfficeObjectId)) and tostring(OfficeObjectId) startswith 'https', tostring(OfficeObjectId), tostring(Site_Url))
+| project TimeGenerated, Operation, LinkType, UserId, FileName, SiteUrl, PortalLink
 | order by TimeGenerated desc | take 500`},
 
   {label:'Admin Activity',type:'la',query:`OfficeActivity
