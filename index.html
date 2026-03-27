@@ -490,13 +490,13 @@ async function signIn(){
   if(NCFG){alert('Fill in clientId and tenantId in CONFIG first.');return;}
   if(!mApp)initMsal();
   if(!mApp){alert('MSAL failed to initialize. Check that msal-browser.min.js loaded correctly.');return;}
-  try{const r=await mApp.loginPopup({scopes:['openid','profile','email']});acct=r.account;onAuth();}
+  try{await mApp.loginRedirect({scopes:['openid','profile','email']});}
   catch(e){alert('Sign-in failed: '+e.message);}
 }
 async function tok(scope){
   const req={scopes:[scope],account:acct};
   try{return(await mApp.acquireTokenSilent(req)).accessToken;}
-  catch{return(await mApp.acquireTokenPopup(req)).accessToken;}
+  catch{await mApp.acquireTokenRedirect(req);}
 }
 
 // ── API ───────────────────────────────────────────────────────
@@ -2754,6 +2754,11 @@ window.addEventListener('DOMContentLoaded',async()=>{
   if(NCFG)document.getElementById('cfgwarn').style.display='block';
   initMsal();
   if(!mApp){document.getElementById('lscr').style.display='flex';return;}
+  // Handle redirect response first (coming back from Microsoft login page)
+  try{
+    const resp=await mApp.handleRedirectPromise();
+    if(resp&&resp.account){acct=resp.account;onAuth();return;}
+  }catch(e){console.error('Redirect error',e);}
   const accounts=mApp.getAllAccounts();
   if(accounts.length){acct=accounts[0];onAuth();}
   else{document.getElementById('lscr').style.display='flex';}
