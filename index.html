@@ -656,7 +656,8 @@ d5:[
     | project SourceVMId, BackupStatus
 ) on $left.VMId==$right.SourceVMId
 | where isempty(BackupStatus) or BackupStatus=='ProtectionStopped'
-| project VMName, BackupStatus=coalesce(BackupStatus,'Not Protected'), ResourceGroup, Location, SubscriptionId
+| extend PortalLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',SubscriptionId,'/resourceGroups/',ResourceGroup,'/providers/Microsoft.RecoveryServices/vaults')
+| project VMName, BackupStatus=coalesce(BackupStatus,'Not Protected'), ResourceGroup, Location, SubscriptionId, PortalLink
 | order by VMName asc | take 1000`},
   {label:'Orphaned Resources',type:'arg',query:`Resources
 | where (type=='microsoft.compute/disks' and properties.diskState=='Unattached')
@@ -675,12 +676,14 @@ d5:[
 | extend ResourceType=tostring(properties.resourceType)
 | summarize Total=count(), Compliant=countif(ComplianceState=='Compliant'), NonCompliant=countif(ComplianceState=='NonCompliant') by PolicyName, ResourceType
 | extend CompliancePct=round(todouble(Compliant)/Total*100,1)
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'
 | order by CompliancePct asc | take 1000`},
   {label:'Shadow Subscriptions',type:'arg',query:`ResourceContainers
 | where type == 'microsoft.resources/subscriptions'
 | extend MgChain=array_length(properties.managementGroupAncestorsChain)
 | where MgChain==0 or isnull(MgChain)
 | project SubscriptionName=name, SubscriptionId=subscriptionId, State=tostring(properties.state)
+| extend PortalLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',subscriptionId)
 | order by SubscriptionName asc`},
   {label:'Sign-in Anomalies',type:'la',query:`SigninLogs
 | where TimeGenerated {TimeRange}
@@ -689,6 +692,7 @@ d5:[
 | extend RiskLevel=tostring(RiskLevelDuringSignIn)
 | summarize FailureCount=count() by UserPrincipalName, AppDisplayName, FailureReason, RiskLevel, IPAddress
 | where FailureCount > 10
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
 | order by FailureCount desc | take 500`},
   {label:'Incident MTTD/MTTR',type:'la',query:`SecurityIncident
 | where TimeGenerated >= ago(30d)
@@ -756,14 +760,16 @@ az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscrip
 | extend ScoreMax = round(todouble(properties.score.max),2)
 | extend ScorePct = round(todouble(properties.score.percentage)*100,1)
 | extend Environment = tostring(properties.environment)
-| project DisplayName, ScoreCurrent, ScoreMax, ScorePct, Environment, SubscriptionId=subscriptionId
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
+| project DisplayName, ScoreCurrent, ScoreMax, ScorePct, Environment, SubscriptionId=subscriptionId, PortalLink
 | order by ScorePct asc`},
 
   {label:'UEBA Anomalies',type:'la',query:`BehaviorAnalytics
 | where TimeGenerated {TimeRange}
 | where InvestigationPriority >= 5
+| extend PortalLink=strcat('https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/UserEntityBlade/userId/',UserPrincipalName)
 | project TimeGenerated, UserName, UserPrincipalName, ActivityType, ActionType,
-    SourceIPAddress, SourceIPLocation, InvestigationPriority,
+    SourceIPAddress, SourceIPLocation, InvestigationPriority, PortalLink,
     UsersInsights, DevicesInsights, ActivityInsights
 | order by InvestigationPriority desc
 | take 500`},
@@ -781,6 +787,7 @@ az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscrip
     Total = count()
     by PolicyName
 | extend SuccessPct = round(todouble(Success)/Total*100,1)
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_ConditionalAccess/ConditionalAccessBlade/~/Policies'
 | order by Total desc
 | take 100`},
 
@@ -794,6 +801,7 @@ az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscrip
     FailureCount = countif(ResultType != 0)
     by ServicePrincipalName, ServicePrincipalId, AppId
 | extend FailurePct = round(todouble(FailureCount)/SignInCount*100,1)
+| extend PortalLink=strcat('https://portal.azure.com/#view/Microsoft_AAD_IAM/ManagedAppMenuBlade/~/SignIns/objectId/',ServicePrincipalId)
 | order by FailureCount desc
 | take 200`},
 ],
@@ -810,14 +818,17 @@ d1:[
 | extend MgDisplayName=tostring(properties.displayName)
 | extend ParentId=tostring(properties.parent.id)
 | extend ParentName=tostring(split(ParentId,'/')[4])
-| project ResourceType=type,Name=name,DisplayName=MgDisplayName,ParentName,TenantId=tenantId
+| extend PortalLink=strcat('https://portal.azure.com/#view/Microsoft_Azure_Management/ManagementGroupBlade/managementGroupId/',name)
+| project ResourceType=type,Name=name,DisplayName=MgDisplayName,ParentName,TenantId=tenantId,PortalLink
 | order by ResourceType asc,Name asc | take 1000`},
   {label:'RBAC Summary',type:'arg',query:`AuthorizationResources
 | where type=='microsoft.authorization/roleassignments'
 | extend PrincipalType=tostring(properties.principalType)
 | extend Scope=tostring(properties.scope)
 | extend ScopeLevel=case(Scope matches regex '^/providers/Microsoft.Management','Management Group',Scope matches regex '^/subscriptions/[^/]+$','Subscription',Scope matches regex '^/subscriptions/[^/]+/resourceGroups/[^/]+$','Resource Group',Scope=='/','Tenant Root','Resource')
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade'
 | summarize Count=count() by PrincipalType,ScopeLevel
+| extend PortalLink=any(PortalLink)
 | order by PrincipalType asc,ScopeLevel asc`},
   {label:'Privileged Roles',type:'arg',query:`AuthorizationResources
 | where type=='microsoft.authorization/roleassignments'
@@ -852,7 +863,8 @@ d1:[
 | summarize Total=count(),NonCompliant=countif(ComplianceState=='NonCompliant'),Compliant=countif(ComplianceState=='Compliant') by Subscription=subscriptionId,AssignmentName
 | extend CompliancePct=round(toreal(Compliant)/Total*100,1)
 | extend Status=case(CompliancePct>=90,'🟢',CompliancePct>=70,'🟡','🔴')
-| project Subscription,Assignment=AssignmentName,Total,Compliant,NonCompliant,CompliancePct,Status
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'
+| project Subscription,Assignment=AssignmentName,Total,Compliant,NonCompliant,CompliancePct,Status,PortalLink
 | order by CompliancePct asc | take 1000`},
   {label:'Tag Coverage',type:'arg',query:`Resources
 | where type !in ('microsoft.resources/subscriptions','microsoft.resources/resourcegroups')
@@ -860,18 +872,21 @@ d1:[
 | summarize Total=count(),Untagged=countif(TagCount==0),PartiallyTagged=countif(TagCount>0 and TagCount<3),FullyTagged=countif(TagCount>=3) by Subscription=subscriptionId
 | extend TagCompliance=round(toreal(FullyTagged)/Total*100,1)
 | extend Status=case(TagCompliance>=80,'🟢',TagCompliance>=50,'🟡','🔴')
-| project Subscription,Total,FullyTagged,PartiallyTagged,Untagged,TagCompliance,Status
+| extend PortalLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',Subscription)
+| project Subscription,Total,FullyTagged,PartiallyTagged,Untagged,TagCompliance,Status,PortalLink
 | order by TagCompliance asc | take 1000`},
   {label:'Sign-in Failures',type:'la',query:`SigninLogs
 | where TimeGenerated {TimeRange}
 | where ResultType!='0'
 | extend FailureReason=tostring(Status.failureReason)
 | summarize FailureCount=count(),UniqueIPs=dcount(IPAddress) by UserPrincipalName,AppDisplayName,FailureReason,ErrorCode=ResultType
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
 | order by FailureCount desc | take 500`},
   {label:'Legacy Auth',type:'la',query:`SigninLogs
 | where TimeGenerated {TimeRange}
 | where ClientAppUsed in ('Exchange ActiveSync','Exchange Online PowerShell','Exchange Web Services','IMAP4','MAPI Over HTTP','Offline Address Book','Other clients','POP3','Reporting Web Services','Authenticated SMTP','Autodiscover')
 | where ResultType=='0'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
 | summarize Count=count() by bin(TimeGenerated,1d),ClientAppUsed
 | order by TimeGenerated asc`},
   {label:'Geo Distribution',type:'la',query:`SigninLogs
@@ -879,6 +894,7 @@ d1:[
 | extend Country=tostring(LocationDetails.countryOrRegion)
 | extend City=tostring(LocationDetails.city)
 | extend IsSuccess=ResultType=='0'
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
 | summarize TotalLogins=count(),Successes=countif(IsSuccess),Failures=countif(not(IsSuccess)),UniqueUsers=dcount(UserPrincipalName) by Country,City
 | order by TotalLogins desc | take 100`},
   {label:'Shadow Subscriptions',type:'arg',query:`ResourceContainers
@@ -906,7 +922,8 @@ d2:[
 | extend AddressPrefix=tostring(subnet.properties.addressPrefix)
 | extend NSGAttached=iff(isnotnull(subnet.properties.networkSecurityGroup),'Yes','No')
 | extend RouteTableAttached=iff(isnotnull(subnet.properties.routeTable),'Yes','No')
-| project VNetName=name,SubnetName,AddressPrefix,NSGAttached,RouteTableAttached,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id,'/subnets')
+| project VNetName=name,SubnetName,AddressPrefix,NSGAttached,RouteTableAttached,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
 | order by SubscriptionId asc,VNetName asc,SubnetName asc | take 2000`},
   {label:'NSG Inventory',type:'arg',query:`Resources
 | where type=='microsoft.network/networksecuritygroups'
@@ -945,14 +962,16 @@ d2:[
 | extend RemoteVNet=tostring(split(tostring(peering.properties.remoteVirtualNetwork.id),'/')[-1])
 | extend AllowGatewayTransit=tostring(peering.properties.allowGatewayTransit)
 | extend UseRemoteGateways=tostring(peering.properties.useRemoteGateways)
-| project LocalVNet=name,PeeringName,PeeringState,RemoteVNet,AllowGatewayTransit,UseRemoteGateways,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id,'/peerings')
+| project LocalVNet=name,PeeringName,PeeringState,RemoteVNet,AllowGatewayTransit,UseRemoteGateways,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
 | order by PeeringState asc,LocalVNet asc | take 1000`},
   {label:'Gateways',type:'arg',query:`Resources
 | where type in ('microsoft.network/virtualnetworkgateways','microsoft.network/expressroutecircuits','microsoft.network/applicationgateways')
 | extend GatewayType=case(type=='microsoft.network/virtualnetworkgateways',tostring(properties.gatewayType),type=='microsoft.network/expressroutecircuits','ExpressRoute','AppGateway')
 | extend SKU=tostring(sku.name)
 | extend ProvisioningState=tostring(properties.provisioningState)
-| project GatewayName=name,GatewayType,SKU,ProvisioningState,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project GatewayName=name,GatewayType,SKU,ProvisioningState,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
 | order by GatewayType asc,GatewayName asc | take 1000`},
   {label:'Azure Firewall',type:'arg',query:`Resources
 | where type=='microsoft.network/azurefirewalls'
@@ -966,7 +985,8 @@ d2:[
 | where type=='microsoft.network/virtualnetworks'
 | extend DDoSEnabled=tostring(properties.enableDdosProtection)
 | extend DDoSPlanName=iff(isnotempty(tostring(properties.ddosProtectionPlan.id)),tostring(split(tostring(properties.ddosProtectionPlan.id),'/')[-1]),'None')
-| project VNetName=name,DDoSEnabled,DDoSPlanName,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id,'/ddosProtection')
+| project VNetName=name,DDoSEnabled,DDoSPlanName,PortalLink,ResourceGroup=resourceGroup,Location=location,SubscriptionId=subscriptionId
 | order by DDoSEnabled asc,VNetName asc | take 1000`},
   {label:'Private Endpoints',type:'arg',query:`Resources
 | where type=='microsoft.network/privateendpoints'
@@ -1140,7 +1160,8 @@ d4:[
     | project SourceVMId,VaultName,BackupStatus
 ) on $left.VMId==$right.SourceVMId
 | extend BackupStatus=coalesce(BackupStatus,'Not Protected')
-| project VMName,BackupStatus,VaultName=coalesce(VaultName,'N/A'),ResourceGroup,Location,SubscriptionId
+| extend PortalLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',SubscriptionId,'/resourceGroups/',ResourceGroup,'/providers/Microsoft.Compute/virtualMachines/',VMName)
+| project VMName,BackupStatus,VaultName=coalesce(VaultName,'N/A'),PortalLink,ResourceGroup,Location,SubscriptionId
 | order by BackupStatus asc,VMName asc | take 2000`},
   {label:'SQL Backup Config',type:'arg',query:`Resources
 | where type=='microsoft.sql/servers/databases'
@@ -1149,7 +1170,8 @@ d4:[
 | extend ZoneRedundant=tostring(properties.zoneRedundant)
 | extend EarliestRestoreDate=tostring(properties.earliestRestoreDate)
 | extend BackupStorageRedundancy=tostring(properties.currentBackupStorageRedundancy)
-| project DBName=name,Edition,BackupStorageRedundancy,ZoneRedundant,EarliestRestoreDate,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| extend PortalLink=strcat('https://portal.azure.com/#resource',id)
+| project DBName=name,Edition,BackupStorageRedundancy,ZoneRedundant,EarliestRestoreDate,PortalLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
 | order by BackupStorageRedundancy asc,DBName asc | take 1000`},
 ],
 d8:[
@@ -1268,23 +1290,27 @@ d10:[
   (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where isnotempty(Actor) and ActorIsBot==false|summarize Value=dcount(Actor)|extend Label="Unique Human Actors"),
   (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where isnotempty(Repo)|summarize Value=dcount(Repo)|extend Label="Unique Repos"),
   (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where isnotempty(Org)|summarize Value=dcount(Org)|extend Label="GitHub Orgs")
+| extend PortalLink='https://github.com/orgs/eagle-org/security'
 | project Label,Value`},
   {label:'Security Alerts',type:'la',query:`union
   (GitHubAuditLogsV2_CL|where TimeGenerated>=ago(30d)|where Action=='repository_vulnerability_alert.create'|summarize Created=count(),Resolved=countif(Action=='repository_vulnerability_alert.resolve') by Repo,Org
   |extend Outstanding=Created-Resolved|order by Created desc)
-| project Repo,Org,Created,Resolved,Outstanding`},
+| extend PortalLink=strcat('https://github.com/',Org,'/',Repo,'/security/dependabot')
+| project Repo,Org,Created,Resolved,Outstanding,PortalLink`},
   {label:'Workflow & Secrets',type:'la',query:`GitHubAuditLogsV2_CL
 | where TimeGenerated>=ago(30d)
 | where isnotempty(SecretsPassed)
 | mv-expand SecretName=todynamic(SecretsPassed)
 | extend SecretStr=tostring(SecretName)
 | extend SecretCategory=case(SecretStr has_any ("CLIENT_SECRET","PASSWORD","SECRET","TOKEN","KEY","CREDENTIAL","PAT"),"Sensitive","Standard")
-| summarize Count=count(),Repos=make_set(Repo,20) by SecretStr,SecretCategory
+| extend PortalLink='https://github.com/orgs/eagle-org/actions'
+| summarize Count=count(),Repos=make_set(Repo,20), PortalLink=any(PortalLink) by SecretStr,SecretCategory
 | order by Count desc`},
   {label:'Access & Policy',type:'la',query:`GitHubAuditLogsV2_CL
 | where TimeGenerated>=ago(30d)
 | where Action in ("protected_branch.policy_override","org.add_member","org.remove_member","org.invite_member","repo.add_member","repo.remove_member","team.add_member","team.remove_member","repo.create","repo.destroy","org_credential_authorization.grant","org_credential_authorization.deauthorize")
-| project TimeGenerated,Action,Actor,User=tostring(column_ifexists('User','')),Org,Repo,Email=tostring(column_ifexists('Email',''))
+| extend PortalLink='https://github.com/orgs/eagle-org/audit-log'
+| project TimeGenerated,Action,Actor,User=tostring(column_ifexists('User','')),Org,Repo,Email=tostring(column_ifexists('Email','')),PortalLink
 | order by TimeGenerated desc | take 500`},
 ],
 
@@ -1303,14 +1329,17 @@ d7:[
 | where SentinelResourceType=='Analytics Rule'
 | summarize TotalRuns=count(), Failures=countif(Status=='Failure'), Successes=countif(Status=='Success'), LastRun=max(TimeGenerated) by SentinelResourceName, SentinelResourceKind
 | extend HealthStatus=iff(Failures>0,'Degraded','Healthy')
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/2'
 | order by HealthStatus desc, Failures desc, SentinelResourceName asc | take 500`},
   {label:'Ingestion by Table',type:'la',query:`Usage
 | where TimeGenerated {TimeRange}
-| summarize IngestedGB=round(sum(Quantity)/1024,3), RecordCount=sum(Quantity) by DataType
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/4'
+| summarize IngestedGB=round(sum(Quantity)/1024,3), RecordCount=sum(Quantity), PortalLink=any(PortalLink) by DataType
 | order by IngestedGB desc | take 100`},
   {label:'Ingestion Trend',type:'la',viz:'timechart',query:`Usage
 | where TimeGenerated>=ago(30d)
 | summarize IngestedGB=round(sum(Quantity)/1024,2) by bin(TimeGenerated,1d)
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/4'
 | order by TimeGenerated asc`},
   {label:'Ingestion Anomalies',type:'la',query:`Usage
 | where TimeGenerated>=ago(30d)
@@ -1318,7 +1347,8 @@ d7:[
 | summarize AvgGB=avg(DailyGB), StdDevGB=stdev(DailyGB), LastDayGB=take_any(DailyGB) by DataType
 | extend ZScore=round((LastDayGB-AvgGB)/StdDevGB,2)
 | where abs(ZScore)>2
-| project DataType, LastDayGB=round(LastDayGB,3), AvgGB=round(AvgGB,3), ZScore
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/4'
+| project DataType, LastDayGB=round(LastDayGB,3), AvgGB=round(AvgGB,3), ZScore, PortalLink
 | order by abs(ZScore) desc | take 50`},
   {label:'Data Connectors',type:'la',query:`datatable(DataType:string,ConnectorName:string)[
 "AADManagedIdentitySignInLogs","Microsoft Entra ID","AADServicePrincipalSignInLogs","Microsoft Entra ID",
@@ -1346,15 +1376,18 @@ d7:[
 | extend ConnectorName=coalesce(ConnectorName,strcat('Unknown - ',DataType))
 | extend HoursSince=datetime_diff('hour',now(),LastIngestion)
 | extend Status=case(HoursSince<=24,'Active',HoursSince<=72,'Stale (1-3d)','Inactive (>3d)')
-| project ConnectorName, DataType, Status, TotalGB, LastIngestion
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/7'
+| project ConnectorName, DataType, Status, TotalGB, LastIngestion, PortalLink
 | order by Status asc, ConnectorName asc, TotalGB desc`},
   {label:'Analytic Rules',type:'la',query:`SecurityAlert
 | where TimeGenerated {TimeRange}
-| summarize AlertCount=count(), LastFired=max(TimeGenerated), AvgPerDay=round(count()/7.0,1) by AlertName, ProductName, AlertSeverity
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/3'
+| summarize AlertCount=count(), LastFired=max(TimeGenerated), AvgPerDay=round(count()/7.0,1), PortalLink=any(PortalLink) by AlertName, ProductName, AlertSeverity
 | order by AlertCount desc | take 200`},
   {label:'Incident Trend',type:'la',viz:'timechart',query:`SecurityIncident
 | where TimeGenerated>=ago(30d)
-| summarize IncidentCount=count() by bin(TimeGenerated,1d), Severity
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
+| summarize IncidentCount=count(), PortalLink=any(PortalLink) by bin(TimeGenerated,1d), Severity
 | order by TimeGenerated asc`},
   {label:'Incident MTTD/MTTR',type:'la',query:`SecurityIncident
 | where TimeGenerated>=ago(30d)
@@ -1365,7 +1398,8 @@ d7:[
 | order by Severity asc`},
   {label:'Alert Volume',type:'la',viz:'timechart',query:`SecurityAlert
 | where TimeGenerated>=ago(30d)
-| summarize AlertCount=count() by bin(TimeGenerated,1d), ProductName
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/6'
+| summarize AlertCount=count(), PortalLink=any(PortalLink) by bin(TimeGenerated,1d), ProductName
 | order by TimeGenerated asc`},
 
   {label:'Proofpoint Threats',type:'la',query:`union
@@ -1389,6 +1423,7 @@ d7:[
   | project TimeGenerated, ThreatType, Classification, sender_s, toAddresses_s,
       subject_s, senderIP_s, phishScore_d, malwareScore_d, spamScore_d, ThreatUrl)
 | order by TimeGenerated desc
+| extend PortalLink='https://threatinsight.proofpoint.com'
 | take 500`},
 
   {label:'Umbrella DNS Threats',type:'la',query:`Cisco_Umbrella_dns_CL
@@ -1402,6 +1437,7 @@ d7:[
     UniqueIPs = dcount(InternalIp_s)
     by Domain_s, tostring(BlockedCategories), ResponseCode_s
 | order by BlockCount desc
+| extend PortalLink='https://dashboard.umbrella.com'
 | take 200`},
 ],
 d6:[
@@ -1410,7 +1446,8 @@ d6:[
 | summarize arg_max(Timestamp,*)by DeviceId
 | summarize TotalDevices=count(), Onboarded=countif(OnboardingStatus=='Onboarded'), CanBeOnboarded=countif(OnboardingStatus=='Can be onboarded'), InsufficientInfo=countif(OnboardingStatus=='Insufficient info'), Windows=countif(OSPlatform startswith 'Windows'), Linux=countif(OSPlatform startswith 'Linux'), macOS=countif(OSPlatform startswith 'macOS')
 | extend CoveragePct=round(todouble(Onboarded)/TotalDevices*100,1)
-| project TotalDevices, Onboarded, CoveragePct, CanBeOnboarded, InsufficientInfo, Windows, Linux, macOS`},
+| extend PortalLink='https://security.microsoft.com/machines'
+| project TotalDevices, Onboarded, CoveragePct, CanBeOnboarded, InsufficientInfo, Windows, Linux, macOS, PortalLink`},
   {label:'High Exposure Devices',type:'la',query:`DeviceInfo
 | where TimeGenerated {TimeRange}
 | summarize arg_max(TimeGenerated,*)by DeviceName
@@ -1444,7 +1481,8 @@ d6:[
 | order by OnboardingStatus asc, OSPlatform asc, DeviceName asc | take 2000`},
   {label:'Incident Summary',type:'la',query:`SecurityIncident
 | where TimeGenerated>=ago(30d)
-| summarize Total=count(), High=countif(Severity=='High'), Medium=countif(Severity=='Medium'), Low=countif(Severity=='Low'), Closed=countif(Status=='Closed'), Active=countif(Status=='Active') by bin(TimeGenerated,1d)
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
+| summarize Total=count(), High=countif(Severity=='High'), Medium=countif(Severity=='Medium'), Low=countif(Severity=='Low'), Closed=countif(Status=='Closed'), Active=countif(Status=='Active'), PortalLink=any(PortalLink) by bin(TimeGenerated,1d)
 | order by TimeGenerated desc | take 90`},
   {label:'Incident Detail',type:'la',query:`SecurityIncident
 | where TimeGenerated>=ago(30d)
@@ -1453,17 +1491,20 @@ d6:[
 | order by CreatedTime desc | take 500`},
   {label:'Rule Health',type:'la',query:`SecurityAlert
 | where TimeGenerated {TimeRange}
-| summarize AlertCount=count(), LastFired=max(TimeGenerated) by AlertName, ProductName
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/3'
+| summarize AlertCount=count(), LastFired=max(TimeGenerated), PortalLink=any(PortalLink) by AlertName, ProductName
 | order by AlertCount desc | take 200`},
   {label:'MDE Ingestion',type:'la',query:`Usage
 | where TimeGenerated {TimeRange}
 | where DataType in ('DeviceInfo','DeviceNetworkEvents','DeviceProcessEvents','DeviceFileEvents','DeviceRegistryEvents','DeviceLogonEvents','DeviceAlertEvents','DeviceTvmSoftwareVulnerabilities')
-| summarize IngestedGB=round(sum(Quantity)/1024,3) by DataType
+| extend PortalLink='https://security.microsoft.com/v2/advanced-hunting'
+| summarize IngestedGB=round(sum(Quantity)/1024,3), PortalLink=any(PortalLink) by DataType
 | order by IngestedGB desc`},
   {label:'Alert Volume',type:'la',viz:'timechart',query:`SecurityAlert
 | where TimeGenerated>=ago(30d)
 | where ProductName has 'Defender'
-| summarize AlertCount=count() by bin(TimeGenerated,1d), AlertSeverity
+| extend PortalLink='https://security.microsoft.com/alerts'
+| summarize AlertCount=count(), PortalLink=any(PortalLink) by bin(TimeGenerated,1d), AlertSeverity
 | order by TimeGenerated asc`},
 ],
 };
