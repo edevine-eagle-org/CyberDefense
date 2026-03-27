@@ -253,6 +253,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   <span class="mtab" onclick="switchD('d8',this)">🤖 AI &amp; Apps</span>
   <span class="mtab" onclick="switchD('d10',this)">🐙 GitHub / DevOps</span>
   <span class="mtab" onclick="switchD('d11',this)">📁 SharePoint</span>
+  <span class="mtab" onclick="switchD('d12',this)">🔐 Saviynt</span>
 </div>
 
 <div id="content">
@@ -263,6 +264,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   <div class="dsect" id="ds-d3"><div class="kstrip" id="kpi-d3"></div><div class="stbar-wrap"><div class="stbar" id="st-d3"></div></div><div id="pn-d3"></div></div>
   <div class="dsect" id="ds-d4"><div class="kstrip" id="kpi-d4"></div><div class="stbar-wrap"><div class="stbar" id="st-d4"></div></div><div id="pn-d4"></div></div>
   <div class="dsect" id="ds-d8"><div class="kstrip" id="kpi-d8"></div><div class="stbar-wrap"><div class="stbar" id="st-d8"></div></div><div id="pn-d8"></div></div>
+  <div class="dsect" id="ds-d12"><div class="kstrip" id="kpi-d12"></div><div class="stbar-wrap"><div class="stbar" id="st-d12"></div></div><div id="pn-d12"></div></div>
   <div class="dsect" id="ds-d11"><div class="kstrip" id="kpi-d11"></div><div class="stbar-wrap"><div class="stbar" id="st-d11"></div></div><div id="pn-d11"></div></div>
   <div class="dsect" id="ds-d10"><div class="kstrip" id="kpi-d10"></div><div class="stbar-wrap"><div class="stbar" id="st-d10"></div></div><div id="pn-d10"></div></div>
   <div class="dsect"     id="ds-d6"><div class="kstrip" id="kpi-d6"></div><div class="stbar-wrap"><div class="stbar" id="st-d6"></div></div><div id="pn-d6"></div></div>
@@ -533,6 +535,14 @@ const KDEFS={
     {l:'HTTPS Not Enforced',c:'kc-rd',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|where properties.httpsOnly!=true|summarize Count=count()`},k:'Count'},
     {l:'Function Apps',c:'kc-gn',q:{t:'arg',q:`Resources|where type=='microsoft.web/sites'|where kind has 'functionapp'|summarize Count=count()`},k:'Count'},
     {l:'APIM Services',c:'kc-or',q:{t:'arg',q:`Resources|where type=='microsoft.apimanagement/service'|summarize Count=count()`},k:'Count'},
+  ],
+  d12:[
+    {l:'Total Events (30d)',c:'kc-cy',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|summarize Count=count()`},k:'Count'},
+    {l:'Logins (30d)',c:'kc-bl',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|where ActionTaken=='Login'|summarize Count=count()`},k:'Count'},
+    {l:'Unique Users',c:'kc-gn',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|summarize Count=dcount(AccessedBy)`},k:'Count'},
+    {l:'User Updates',c:'kc-yw',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|where ObjectType=='USERS' and ActionTaken=='Update'|summarize Count=count()`},k:'Count'},
+    {l:'Entitlement Changes',c:'kc-or',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|where ObjectType in ('ENTITLEMENTS','ROLE','ENTITLEMENT_TYPE') and ActionTaken!='Show'|summarize Count=count()`},k:'Count'},
+    {l:'Role Requests',c:'kc-rd',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|where ActionTaken=='rolerequestfirststep'|summarize Count=count()`},k:'Count'},
   ],
   d11:[
     {l:'Total Events (7d)',c:'kc-cy',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|summarize Count=count()`},k:'Count'},
@@ -1297,6 +1307,87 @@ d8:[
 | order by Status asc,Name asc | take 1000`},
 ],
 
+
+d12:[
+  {label:'Audit Overview',type:'la',query:`SaviyntAuditLogs_CL
+| where TimeGenerated {TimeRange}
+| extend MessageParsed = todynamic(Message)
+| extend ObjectName = tostring(MessageParsed.objectName)
+| summarize Count=count() by bin(TimeGenerated,1d), ActionTaken
+| extend PortalLink='https://eagle.saviyntcloud.com/ECM/auditLogs'
+| order by TimeGenerated asc`},
+
+  {label:'Login Activity',type:'la',query:`SaviyntAuditLogs_CL
+| where TimeGenerated {TimeRange}
+| where ActionTaken in ('Login','Logout')
+| extend MessageParsed = todynamic(Message)
+| extend ObjectName = tostring(MessageParsed.objectName)
+| extend LoginMsg = tostring(MessageParsed.message)
+| project TimeGenerated, ActionTaken, AccessedBy, IPAddress, ObjectName, LoginMsg
+| extend PortalLink='https://eagle.saviyntcloud.com/ECM/auditLogs'
+| order by TimeGenerated desc | take 500`},
+
+  {label:'User Changes',type:'la',query:`SaviyntAuditLogs_CL
+| where TimeGenerated {TimeRange}
+| where ObjectType == 'USERS'
+| where ActionTaken != 'Show'
+| extend MessageParsed = todynamic(Message)
+| extend ObjectName = tostring(MessageParsed.objectName)
+| extend ChangeMsg = tostring(MessageParsed.message)
+| project TimeGenerated, ActionTaken, AccessedBy, IPAddress, ObjectName, ChangeMsg
+| extend PortalLink='https://eagle.saviyntcloud.com/ECM/viewUserDetails'
+| order by TimeGenerated desc | take 500`},
+
+  {label:'Entitlement & Role Changes',type:'la',query:`SaviyntAuditLogs_CL
+| where TimeGenerated {TimeRange}
+| where ObjectType in ('ENTITLEMENTS','ROLE','ENTITLEMENT_TYPE')
+| extend MessageParsed = todynamic(Message)
+| extend ObjectName = tostring(MessageParsed.objectName)
+| extend ChangeMsg = tostring(MessageParsed.message)
+| project TimeGenerated, ObjectType, ActionTaken, AccessedBy, IPAddress, ObjectName, ChangeMsg
+| extend PortalLink='https://eagle.saviyntcloud.com/ECM/index'
+| order by TimeGenerated desc | take 500`},
+
+  {label:'Role Requests',type:'la',query:`SaviyntAuditLogs_CL
+| where TimeGenerated {TimeRange}
+| where ActionTaken == 'rolerequestfirststep'
+| extend MessageParsed = todynamic(Message)
+| extend ObjectName = tostring(MessageParsed.objectName)
+| extend RequestMsg = tostring(MessageParsed.message)
+| project TimeGenerated, ActionTaken, AccessedBy, IPAddress, ObjectName, RequestMsg
+| extend PortalLink='https://eagle.saviyntcloud.com/ECM/index#requests'
+| order by TimeGenerated desc | take 500`},
+
+  {label:'Endpoint & System Changes',type:'la',query:`SaviyntAuditLogs_CL
+| where TimeGenerated {TimeRange}
+| where ObjectType in ('ENDPOINT','SECURITY_SYSTEM','CONNECTIONS')
+| where ActionTaken != 'Show'
+| extend MessageParsed = todynamic(Message)
+| extend ObjectName = tostring(MessageParsed.objectName)
+| extend ChangeMsg = tostring(MessageParsed.message)
+| project TimeGenerated, ObjectType, ActionTaken, AccessedBy, IPAddress, ObjectName, ChangeMsg
+| extend PortalLink='https://eagle.saviyntcloud.com/ECM/index#endpoints'
+| order by TimeGenerated desc | take 500`},
+
+  {label:'User Group Changes',type:'la',query:`SaviyntAuditLogs_CL
+| where TimeGenerated {TimeRange}
+| where ObjectType == 'User_Groups'
+| extend MessageParsed = todynamic(Message)
+| extend ObjectName = tostring(MessageParsed.objectName)
+| extend ChangeMsg = tostring(MessageParsed.message)
+| project TimeGenerated, ActionTaken, AccessedBy, IPAddress, ObjectName, ChangeMsg
+| extend PortalLink='https://eagle.saviyntcloud.com/ECM/index#userGroups'
+| order by TimeGenerated desc | take 500`},
+
+  {label:'All Activity',type:'la',query:`SaviyntAuditLogs_CL
+| where TimeGenerated {TimeRange}
+| extend MessageParsed = todynamic(Message)
+| extend ObjectName = tostring(MessageParsed.objectName)
+| extend ActivityMsg = tostring(MessageParsed.message)
+| project TimeGenerated, ObjectType, ActionTaken, AccessedBy, IPAddress, ObjectName, ActivityMsg
+| extend PortalLink='https://eagle.saviyntcloud.com/ECM/auditLogs'
+| order by TimeGenerated desc | take 1000`},
+],
 d11:[
   {label:'Overview',type:'la',query:`OfficeActivity
 | where TimeGenerated {TimeRange}
@@ -1789,6 +1880,7 @@ function onAuth(){
   buildDash('d8',PANELS.d8);
   buildDash('d10',PANELS.d10);
   buildDash('d11',PANELS.d11);
+  buildDash('d12',PANELS.d12);
   loadKPIs('d5');
   loadSubscriptions();
 }
