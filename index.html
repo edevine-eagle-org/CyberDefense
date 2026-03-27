@@ -675,120 +675,7 @@ function buildDash(id,panels){
 }
 
 // ── KPI STRIPS ────────────────────────────────────────────────
-// ── DEPT PANEL SPLITS (filter from existing arrays) ─────────────
-PANELS.def_sentinel  = PANELS.d7.filter(p=>!['Proofpoint Threats','Umbrella DNS Threats'].includes(p.label));
-PANELS.def_email     = PANELS.d7.filter(p=>p.label==='Proofpoint Threats');
-PANELS.def_dns       = PANELS.d7.filter(p=>p.label==='Umbrella DNS Threats');
-PANELS.def_identity  = PANELS.d5.filter(p=>['Identity & PIM','Managed Identities','KV Secrets / Certs','Sign-in Anomalies','UEBA Anomalies','CA Policy Coverage','SP Sign-in Activity'].includes(p.label));
-PANELS.def_privileged= [...PANELS.d5.filter(p=>['Identity & PIM','Managed Identities'].includes(p.label)),...PANELS.d1.filter(p=>['Privileged Roles','Guest Principals'].includes(p.label))];
-PANELS.def_sharepoint= PANELS.d11.filter(p=>['Overview','External Sharing','Bulk Downloads','Sensitive File Activity','Anonymous Links','File Operations'].includes(p.label));
-PANELS.def_oci       = PANELS.d13.filter(p=>['Identity & Sign-ins','User & Group Changes','All Events'].includes(p.label));
-PANELS.arch_posture  = PANELS.d5.filter(p=>['Vulnerability Management','Attack Paths','AKS Security','Backup Coverage','Orphaned Resources','Compliance','Shadow Subscriptions','Incident MTTD/MTTR','Quick Wins','Remediation Guidance','CLI Reference','Secure Score'].includes(p.label));
-PANELS.arch_oci      = PANELS.d13.filter(p=>['Overview','Kubernetes','Integration Activity','Networking','Compute & Storage','Database','Key Management & Secrets'].includes(p.label));
-PANELS.grc_governance= PANELS.d1.filter(p=>['Subscription Overview','Management Groups','RBAC Summary','Tag Coverage','Shadow Subscriptions'].includes(p.label));
-PANELS.grc_policy    = [...PANELS.d1.filter(p=>['Policy Compliance'].includes(p.label)),...PANELS.d5.filter(p=>['Compliance','Secure Score'].includes(p.label))];
-PANELS.grc_access    = [...PANELS.d5.filter(p=>['Identity & PIM','CA Policy Coverage'].includes(p.label)),...PANELS.d1.filter(p=>['Privileged Roles','Guest Principals','RBAC Summary'].includes(p.label))];
-PANELS.grc_ca        = [...PANELS.d1.filter(p=>['Sign-in Failures','Legacy Auth','Geo Distribution'].includes(p.label)),...PANELS.d5.filter(p=>['CA Policy Coverage','Sign-in Anomalies'].includes(p.label))];
-PANELS.grc_audit     = [...PANELS.d12.filter(p=>['Audit Overview','All Activity'].includes(p.label)),...PANELS.d11.filter(p=>['Admin Activity','Permission Changes'].includes(p.label)),...PANELS.d13.filter(p=>['Identity & Sign-ins','User & Group Changes'].includes(p.label))];
-PANELS.grc_regulatory= PANELS.d5.filter(p=>['Compliance','Secure Score','Quick Wins','Remediation Guidance'].includes(p.label));
 
-// ── EXECUTIVE SUMMARY PANELS ─────────────────────────────────────
-PANELS.def_exec=[
-  {label:'Incident Overview',type:'la',query:`SecurityIncident
-| where TimeGenerated >= ago(7d)
-| summarize TotalIncidents=count(),Active=countif(Status=='Active'),High=countif(Severity=='High'),Critical=countif(Severity=='Critical'),AvgMTTD=round(avg(datetime_diff('minute',FirstActivityTime,CreatedTime)),0) by bin(TimeGenerated,1d)
-| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
-| order by TimeGenerated asc`},
-  {label:'Identity Risk',type:'la',query:`union
-  (SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Value=count()|extend Label='Sign-in Failures (7d)'),
-  (BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Value=count()|extend Label='UEBA Anomalies (7d)'),
-  (SigninLogs|where TimeGenerated>=ago(7d)|where RiskLevelDuringSignIn in ('high','medium')|summarize Value=dcount(UserPrincipalName)|extend Label='Risky Sign-in Users (7d)'),
-  (AADServicePrincipalSignInLogs|where TimeGenerated>=ago(7d)|where ResultType!=0|summarize Value=count()|extend Label='SP Sign-in Failures (7d)')
-| project Label, Value
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SecurityMenuBlade/~/RiskyUsers/menuId/RiskyUsers/fromNav/'`},
-  {label:'Email & DNS Threats',type:'la',query:`union
-  (ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Value=count()|extend Label='Emails Blocked by Proofpoint'),
-  (ProofPointTAPMessagesDelivered_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Value=count()|extend Label='Threats Delivered'),
-  (Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Value=count()|extend Label='DNS Requests Blocked'),
-  (Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Value=dcount(Domain_s)|extend Label='Unique Malicious Domains')
-| project Label, Value
-| extend PortalLink='https://threatinsight.proofpoint.com'`},
-  {label:'Alert Trend (30d)',type:'la',viz:'timechart',query:`SecurityAlert
-| where TimeGenerated>=ago(30d)
-| summarize Count=count() by bin(TimeGenerated,1d), AlertSeverity
-| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/6'
-| order by TimeGenerated asc`},
-];
-
-PANELS.arch_exec=[
-  {label:'Posture Overview',type:'arg',query:`union
-  (securityresources|where type=='microsoft.security/securescores'|extend Value=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Value),1)|extend Label='Avg Secure Score (%)', Value=Score|project Label,Value),
-  (securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Value=count()|extend Label='Critical Controls'),
-  (securityresources|where type=='microsoft.security/attackpaths'|summarize Value=count()|extend Label='Attack Paths'),
-  (Resources|where type=='microsoft.network/publicipaddresses'|summarize Value=count()|extend Label='Public IPs Exposed')
-| project Label, Value
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'`},
-  {label:'Infrastructure Risk',type:'arg',query:`union
-  (Resources|where type=='microsoft.compute/virtualmachines'|extend VMId=tolower(id)|join kind=leftouter(Resources|where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'|where properties.workloadType=='VM'|extend SourceVMId=tolower(tostring(properties.sourceResourceId))|project SourceVMId)on $left.VMId==$right.SourceVMId|where isempty(SourceVMId)|summarize Value=count()|extend Label='VMs Without Backup'),
-  (Resources|where type=='microsoft.storage/storageaccounts'|where properties.allowBlobPublicAccess==true|summarize Value=count()|extend Label='Storage with Public Blob Access'),
-  (Resources|where type=='microsoft.web/sites'|where properties.httpsOnly!=true|summarize Value=count()|extend Label='App Services Without HTTPS'),
-  (Resources|where(type=='microsoft.compute/disks'and properties.diskState=='Unattached')or(type=='microsoft.network/publicipaddresses'and isnull(properties.ipConfiguration))|summarize Value=count()|extend Label='Orphaned Resources')
-| project Label, Value
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'`},
-  {label:'Compliance Trend',type:'arg',query:`securityresources
-| where type=='microsoft.security/assessments'
-| where properties.status.code=='Unhealthy'
-| extend Severity=tostring(properties.metadata.severity)
-| extend Category=tostring(properties.metadata.categories[0])
-| summarize Count=count() by Severity, Category
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'
-| order by Count desc | take 50`},
-  {label:'Secure Score by Subscription',type:'arg',query:`securityresources
-| where type=='microsoft.security/securescores'
-| extend ScorePct=round(todouble(properties.score.percentage)*100,1)
-| extend ScoreCurrent=round(todouble(properties.score.current),2)
-| extend ScoreMax=round(todouble(properties.score.max),2)
-| extend Environment=tostring(properties.environment)
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
-| project SubscriptionId=subscriptionId, ScorePct, ScoreCurrent, ScoreMax, Environment, PortalLink
-| order by ScorePct asc`},
-];
-
-PANELS.grc_exec=[
-  {label:'Governance Overview',type:'arg',query:`union
-  (PolicyResources|where type=~'microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Value=count()|extend Label='Policy Violations'),
-  (ResourceContainers|where type=='microsoft.resources/subscriptions'|extend MgChain=array_length(properties.managementGroupAncestorsChain)|where MgChain==0 or isnull(MgChain)|summarize Value=count()|extend Label='Shadow Subscriptions'),
-  (Resources|where type!in('microsoft.resources/subscriptions','microsoft.resources/resourcegroups')|extend TagCount=array_length(bag_keys(tags))|where TagCount==0|summarize Value=count()|extend Label='Untagged Resources'),
-  (AuthorizationResources|where type=='microsoft.authorization/roleassignments'|where properties.principalType in('Guest','ForeignGroup')|summarize Value=count()|extend Label='Guest Principal Assignments')
-| project Label, Value
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'`},
-  {label:'Access Risk',type:'arg',query:`AuthorizationResources
-| where type=='microsoft.authorization/roleassignments'
-| extend RoleId=tolower(tostring(properties.roleDefinitionId))
-| extend IsPrivileged=RoleId has_any ('8e3af657','b24988ac','18d7d88d','fb1c8493')
-| extend IsGuest=properties.principalType in ('Guest','ForeignGroup')
-| extend ScopeLevel=case(tostring(properties.scope) has '/resourceGroups/','Resource Group',tostring(properties.scope) has '/subscriptions/','Subscription',tostring(properties.scope) has '/providers/Microsoft.Management/','Management Group','Other')
-| summarize PrivilegedRoles=countif(IsPrivileged), GuestPrincipals=countif(IsGuest), TotalAssignments=count() by ScopeLevel
-| extend PortalLink='https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions'
-| order by TotalAssignments desc`},
-  {label:'Policy Compliance by Subscription',type:'arg',query:`PolicyResources
-| where type=~'microsoft.policyinsights/policystates'
-| extend ComplianceState=tostring(properties.complianceState)
-| summarize Total=count(), NonCompliant=countif(ComplianceState=='NonCompliant'), Compliant=countif(ComplianceState=='Compliant') by Subscription=subscriptionId
-| extend CompliancePct=round(toreal(Compliant)/Total*100,1)
-| extend Status=case(CompliancePct>=90,'🟢',CompliancePct>=70,'🟡','🔴')
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'
-| order by CompliancePct asc | take 100`},
-  {label:'Regulatory Controls Summary',type:'arg',query:`securityresources
-| where type=='microsoft.security/assessments'
-| extend ComplianceState=tostring(properties.status.code)
-| extend Category=tostring(properties.metadata.categories[0])
-| extend Severity=tostring(properties.metadata.severity)
-| summarize Healthy=countif(ComplianceState=='Healthy'),Unhealthy=countif(ComplianceState=='Unhealthy'),Total=count() by Category,Severity
-| extend CompliancePct=round(toreal(Healthy)/Total*100,1)
-| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
-| order by CompliancePct asc`},
-];
 
 
 const KDEFS={
@@ -2208,6 +2095,124 @@ d6:[
 | order by TimeGenerated asc`},
 ],
 };
+
+// ── DEPT PANEL SPLITS (filter from existing arrays) ─────────────
+PANELS.def_sentinel  = PANELS.d7.filter(p=>!['Proofpoint Threats','Umbrella DNS Threats'].includes(p.label));
+PANELS.def_email     = PANELS.d7.filter(p=>p.label==='Proofpoint Threats');
+PANELS.def_dns       = PANELS.d7.filter(p=>p.label==='Umbrella DNS Threats');
+PANELS.def_identity  = PANELS.d5.filter(p=>['Identity & PIM','Managed Identities','KV Secrets / Certs','Sign-in Anomalies','UEBA Anomalies','CA Policy Coverage','SP Sign-in Activity'].includes(p.label));
+PANELS.def_privileged= [...PANELS.d5.filter(p=>['Identity & PIM','Managed Identities'].includes(p.label)),...PANELS.d1.filter(p=>['Privileged Roles','Guest Principals'].includes(p.label))];
+PANELS.def_sharepoint= PANELS.d11.filter(p=>['Overview','External Sharing','Bulk Downloads','Sensitive File Activity','Anonymous Links','File Operations'].includes(p.label));
+PANELS.def_oci       = PANELS.d13.filter(p=>['Identity & Sign-ins','User & Group Changes','All Events'].includes(p.label));
+PANELS.arch_posture  = PANELS.d5.filter(p=>['Vulnerability Management','Attack Paths','AKS Security','Backup Coverage','Orphaned Resources','Compliance','Shadow Subscriptions','Incident MTTD/MTTR','Quick Wins','Remediation Guidance','CLI Reference','Secure Score'].includes(p.label));
+PANELS.arch_oci      = PANELS.d13.filter(p=>['Overview','Kubernetes','Integration Activity','Networking','Compute & Storage','Database','Key Management & Secrets'].includes(p.label));
+PANELS.grc_governance= PANELS.d1.filter(p=>['Subscription Overview','Management Groups','RBAC Summary','Tag Coverage','Shadow Subscriptions'].includes(p.label));
+PANELS.grc_policy    = [...PANELS.d1.filter(p=>['Policy Compliance'].includes(p.label)),...PANELS.d5.filter(p=>['Compliance','Secure Score'].includes(p.label))];
+PANELS.grc_access    = [...PANELS.d5.filter(p=>['Identity & PIM','CA Policy Coverage'].includes(p.label)),...PANELS.d1.filter(p=>['Privileged Roles','Guest Principals','RBAC Summary'].includes(p.label))];
+PANELS.grc_ca        = [...PANELS.d1.filter(p=>['Sign-in Failures','Legacy Auth','Geo Distribution'].includes(p.label)),...PANELS.d5.filter(p=>['CA Policy Coverage','Sign-in Anomalies'].includes(p.label))];
+PANELS.grc_audit     = [...PANELS.d12.filter(p=>['Audit Overview','All Activity'].includes(p.label)),...PANELS.d11.filter(p=>['Admin Activity','Permission Changes'].includes(p.label)),...PANELS.d13.filter(p=>['Identity & Sign-ins','User & Group Changes'].includes(p.label))];
+PANELS.grc_regulatory= PANELS.d5.filter(p=>['Compliance','Secure Score','Quick Wins','Remediation Guidance'].includes(p.label));
+
+// ── EXECUTIVE SUMMARY PANELS ─────────────────────────────────────
+
+PANELS.def_exec=[
+  {label:'Incident Overview',type:'la',query:`SecurityIncident
+| where TimeGenerated >= ago(7d)
+| summarize TotalIncidents=count(),Active=countif(Status=='Active'),High=countif(Severity=='High'),Critical=countif(Severity=='Critical'),AvgMTTD=round(avg(datetime_diff('minute',FirstActivityTime,CreatedTime)),0) by bin(TimeGenerated,1d)
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/5'
+| order by TimeGenerated asc`},
+  {label:'Identity Risk',type:'la',query:`union
+  (SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Value=count()|extend Label='Sign-in Failures (7d)'),
+  (BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Value=count()|extend Label='UEBA Anomalies (7d)'),
+  (SigninLogs|where TimeGenerated>=ago(7d)|where RiskLevelDuringSignIn in ('high','medium')|summarize Value=dcount(UserPrincipalName)|extend Label='Risky Sign-in Users (7d)'),
+  (AADServicePrincipalSignInLogs|where TimeGenerated>=ago(7d)|where ResultType!=0|summarize Value=count()|extend Label='SP Sign-in Failures (7d)')
+| project Label, Value
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SecurityMenuBlade/~/RiskyUsers/menuId/RiskyUsers/fromNav/'`},
+  {label:'Email & DNS Threats',type:'la',query:`union
+  (ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Value=count()|extend Label='Emails Blocked by Proofpoint'),
+  (ProofPointTAPMessagesDelivered_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Value=count()|extend Label='Threats Delivered'),
+  (Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Value=count()|extend Label='DNS Requests Blocked'),
+  (Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Value=dcount(Domain_s)|extend Label='Unique Malicious Domains')
+| project Label, Value
+| extend PortalLink='https://threatinsight.proofpoint.com'`},
+  {label:'Alert Trend (30d)',type:'la',viz:'timechart',query:`SecurityAlert
+| where TimeGenerated>=ago(30d)
+| summarize Count=count() by bin(TimeGenerated,1d), AlertSeverity
+| extend PortalLink='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/MainMenuBlade/6'
+| order by TimeGenerated asc`},
+];
+
+PANELS.arch_exec=[
+  {label:'Posture Overview',type:'arg',query:`union
+  (securityresources|where type=='microsoft.security/securescores'|extend Value=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Value),1)|extend Label='Avg Secure Score (%)', Value=Score|project Label,Value),
+  (securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Value=count()|extend Label='Critical Controls'),
+  (securityresources|where type=='microsoft.security/attackpaths'|summarize Value=count()|extend Label='Attack Paths'),
+  (Resources|where type=='microsoft.network/publicipaddresses'|summarize Value=count()|extend Label='Public IPs Exposed')
+| project Label, Value
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'`},
+  {label:'Infrastructure Risk',type:'arg',query:`union
+  (Resources|where type=='microsoft.compute/virtualmachines'|extend VMId=tolower(id)|join kind=leftouter(Resources|where type=='microsoft.recoveryservices/vaults/backupfabrics/protectioncontainers/protecteditems'|where properties.workloadType=='VM'|extend SourceVMId=tolower(tostring(properties.sourceResourceId))|project SourceVMId)on $left.VMId==$right.SourceVMId|where isempty(SourceVMId)|summarize Value=count()|extend Label='VMs Without Backup'),
+  (Resources|where type=='microsoft.storage/storageaccounts'|where properties.allowBlobPublicAccess==true|summarize Value=count()|extend Label='Storage with Public Blob Access'),
+  (Resources|where type=='microsoft.web/sites'|where properties.httpsOnly!=true|summarize Value=count()|extend Label='App Services Without HTTPS'),
+  (Resources|where(type=='microsoft.compute/disks'and properties.diskState=='Unattached')or(type=='microsoft.network/publicipaddresses'and isnull(properties.ipConfiguration))|summarize Value=count()|extend Label='Orphaned Resources')
+| project Label, Value
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'`},
+  {label:'Compliance Trend',type:'arg',query:`securityresources
+| where type=='microsoft.security/assessments'
+| where properties.status.code=='Unhealthy'
+| extend Severity=tostring(properties.metadata.severity)
+| extend Category=tostring(properties.metadata.categories[0])
+| summarize Count=count() by Severity, Category
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'
+| order by Count desc | take 50`},
+  {label:'Secure Score by Subscription',type:'arg',query:`securityresources
+| where type=='microsoft.security/securescores'
+| extend ScorePct=round(todouble(properties.score.percentage)*100,1)
+| extend ScoreCurrent=round(todouble(properties.score.current),2)
+| extend ScoreMax=round(todouble(properties.score.max),2)
+| extend Environment=tostring(properties.environment)
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
+| project SubscriptionId=subscriptionId, ScorePct, ScoreCurrent, ScoreMax, Environment, PortalLink
+| order by ScorePct asc`},
+];
+
+PANELS.grc_exec=[
+  {label:'Governance Overview',type:'arg',query:`union
+  (PolicyResources|where type=~'microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Value=count()|extend Label='Policy Violations'),
+  (ResourceContainers|where type=='microsoft.resources/subscriptions'|extend MgChain=array_length(properties.managementGroupAncestorsChain)|where MgChain==0 or isnull(MgChain)|summarize Value=count()|extend Label='Shadow Subscriptions'),
+  (Resources|where type!in('microsoft.resources/subscriptions','microsoft.resources/resourcegroups')|extend TagCount=array_length(bag_keys(tags))|where TagCount==0|summarize Value=count()|extend Label='Untagged Resources'),
+  (AuthorizationResources|where type=='microsoft.authorization/roleassignments'|where properties.principalType in('Guest','ForeignGroup')|summarize Value=count()|extend Label='Guest Principal Assignments')
+| project Label, Value
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'`},
+  {label:'Access Risk',type:'arg',query:`AuthorizationResources
+| where type=='microsoft.authorization/roleassignments'
+| extend RoleId=tolower(tostring(properties.roleDefinitionId))
+| extend IsPrivileged=RoleId has_any ('8e3af657','b24988ac','18d7d88d','fb1c8493')
+| extend IsGuest=properties.principalType in ('Guest','ForeignGroup')
+| extend ScopeLevel=case(tostring(properties.scope) has '/resourceGroups/','Resource Group',tostring(properties.scope) has '/subscriptions/','Subscription',tostring(properties.scope) has '/providers/Microsoft.Management/','Management Group','Other')
+| summarize PrivilegedRoles=countif(IsPrivileged), GuestPrincipals=countif(IsGuest), TotalAssignments=count() by ScopeLevel
+| extend PortalLink='https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions'
+| order by TotalAssignments desc`},
+  {label:'Policy Compliance by Subscription',type:'arg',query:`PolicyResources
+| where type=~'microsoft.policyinsights/policystates'
+| extend ComplianceState=tostring(properties.complianceState)
+| summarize Total=count(), NonCompliant=countif(ComplianceState=='NonCompliant'), Compliant=countif(ComplianceState=='Compliant') by Subscription=subscriptionId
+| extend CompliancePct=round(toreal(Compliant)/Total*100,1)
+| extend Status=case(CompliancePct>=90,'🟢',CompliancePct>=70,'🟡','🔴')
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_PolicyInsights/PolicyComplianceBladeV2'
+| order by CompliancePct asc | take 100`},
+  {label:'Regulatory Controls Summary',type:'arg',query:`securityresources
+| where type=='microsoft.security/assessments'
+| extend ComplianceState=tostring(properties.status.code)
+| extend Category=tostring(properties.metadata.categories[0])
+| extend Severity=tostring(properties.metadata.severity)
+| summarize Healthy=countif(ComplianceState=='Healthy'),Unhealthy=countif(ComplianceState=='Unhealthy'),Total=count() by Category,Severity
+| extend CompliancePct=round(toreal(Healthy)/Total*100,1)
+| extend PortalLink='https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/22'
+| order by CompliancePct asc`},
+];
+
+
 
 // ── SUBSCRIPTION FILTER ───────────────────────────────────────
 let allSubs = [];       // [{id, name}]
