@@ -2550,7 +2550,8 @@ PANELS.arch_exec=[
 | extend IsNoHttps = (type=='microsoft.web/sites' and properties.httpsOnly!=true)
 | extend IsOrphaned = ((type=='microsoft.compute/disks' and properties.diskState=='Unattached') or (type=='microsoft.network/publicipaddresses' and isnull(properties.ipConfiguration)))
 | summarize TotalVMs=countif(IsVM), PublicStorage=countif(IsPublicStorage), NoHttpsApps=countif(IsNoHttps), OrphanedResources=countif(IsOrphaned)
-| extend PortalLink='https://security.microsoft.com/machines?category=all-devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020?category=all-devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020',type:'arg',query:`securityresources
+| extend PortalLink='https://security.microsoft.com/machines?category=all-devices&tid=d810b06c-d004-4d52-b0aa-4f3581ee7020'`},
+  {label:'Compliance Trend',type:'arg',query:`securityresources
 | where type=='microsoft.security/assessments'
 | where properties.status.code=='Unhealthy'
 | extend Severity=tostring(properties.metadata.severity)
