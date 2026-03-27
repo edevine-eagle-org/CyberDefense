@@ -1,223 +1,172 @@
-# ABS Cyber Security Portal
+# ABS CyberDefense · Security Dashboard
 
-Live multi-department Azure security dashboard for the ABS Cyber Security organization. Queries Microsoft Sentinel, Azure Resource Graph, Log Analytics, and connected third-party data sources in real time using the signed-in user's delegated Azure AD credentials.
+A browser-based executive security dashboard for **American Bureau of Shipping**, built on top of Microsoft Sentinel, Microsoft Defender for Cloud, Microsoft Entra ID, Microsoft Defender for Endpoint, and several third-party data sources. All data is fetched live at runtime — nothing is stored or cached.
 
-**Live URL:** https://edevine-eagle-org.github.io/CyberDefense/
+> **Designed and Built by:** Eddie Devine, SIEM Engineer — ABS CyberDefense
+
+---
+
+## Live Demo
+
+**[edevine-eagle-org.github.io/CyberDefense](https://edevine-eagle-org.github.io/CyberDefense/)**
+
+Sign in with your ABS Azure AD account to load live data. No data is pre-loaded or mocked.
+
+---
+
+## Overview
+
+The dashboard is a single HTML file (`index.html`) with no build step, no backend, and no server. It authenticates directly against Microsoft Azure using MSAL (Microsoft Authentication Library) and queries Azure APIs in the browser. Every panel, KPI, and chart is driven by live KQL (Kusto Query Language) or Azure Resource Graph queries executed against your own tenant.
 
 ---
 
 ## Architecture
 
-Three-tier navigation with an executive home landing page:
-
 ```
-Home (Executive Overview)
-├── CyberDefense       - SOC / threat detection / response
-├── CyberArchitecture  - Cloud security posture / infrastructure
-└── CyberGRC           - Governance / risk / compliance
+Browser → MSAL (Azure AD Auth) → Azure REST APIs
+                                  ├── Log Analytics (KQL) — Sentinel, MDE, Entra logs
+                                  ├── Azure Resource Graph — Posture, RBAC, Policy
+                                  └── Microsoft 365 Defender API — MDE device data
 ```
 
-Each department has its own Executive Summary dashboard plus dedicated sub-dashboards scoped to that team's function. Panels shared across departments (e.g. Privileged Roles, Secure Score) are duplicated with context-appropriate focus per department.
+**No data leaves the browser.** Queries run client-side against your tenant's APIs using your own delegated credentials.
 
 ---
 
-## Authentication
+## Dashboard Sections
 
-Sign in with your ABS Azure AD account (`@eagle.org` or `-c0` accounts). The dashboard uses MSAL.js with PKCE - no passwords or secrets are stored anywhere.
+### 🏠 Home
+Executive summary view with KPI cards for each department and a live tactical operations panel showing active incidents, alert volume, sign-in failures, UEBA anomalies, emails blocked, and DNS blocks.
 
-- **App Registration:** `EA-SecurityDashboard-Prod-AppReg`
-- **Client ID:** `467a1486-6459-4661-8397-c1dd41cd38e7`
-- **Tenant:** American Bureau of Shipping (`d810b06c-d004-4d52-b0aa-4f3581ee7020`)
-- **Workspace:** `law-security-prod` (`7123fe2d-f76e-4027-8784-f9b6eec61ba8`)
+### 🛡️ CyberDefense
+| Tab | Data Sources | What It Shows |
+|---|---|---|
+| Executive Summary | Sentinel, Proofpoint, Umbrella | Incident overview, identity risk, email/DNS threats, alert trend |
+| Sentinel Health | Log Analytics | Workspace inventory, rule health, ingestion by table, data connectors, analytic rules, incident MTTD/MTTR |
+| MDE Coverage | Defender for Endpoint | Device onboarding coverage, high-exposure devices, vulnerabilities, incident detail |
+| Identity Threats | Entra ID, Sentinel UEBA | Sign-in anomalies, UEBA anomalies, CA policy coverage, SP sign-in activity |
+| Email Threats | Proofpoint TAP | Blocked/delivered threats by sender, classification, score |
+| DNS Threats | Cisco Umbrella | Blocked domains by category, volume, identity |
+| Privileged Access | Entra ID, ARG | Identity & PIM, managed identities, KV secrets/certs, CA policy |
+| SharePoint | Office 365 | External sharing, bulk downloads, sensitive file activity, anonymous links |
+| Saviynt | Saviynt ECM | Audit logs, user details, access requests, endpoints, user groups |
+| OCI Threats | Oracle Cloud | Identity & sign-ins, user/group changes, Kubernetes, networking, compute |
+| GitHub / DevOps | GitHub Enterprise | Dependabot alerts, secret scanning, audit log, actions |
 
-**Required roles on your account:**
-- `Log Analytics Reader` on `law-security-prod`
-- `Reader` at Management Group or subscription scope
-- `Security Reader` at Management Group scope
+### 🏗️ CyberArchitecture
+| Tab | Data Sources | What It Shows |
+|---|---|---|
+| Executive Summary | ARG, Defender | Posture overview, infrastructure risk, compliance trend, secure score by subscription |
+| Posture & Compliance | Defender for Cloud | Vulnerability management, attack paths, AKS security, backup coverage, orphaned resources, compliance, secure score |
+| Networking | ARG | VNet overview, subnets, NSG rules, public IPs, VNet peering, VPN gateways, Azure Firewall, DDoS, private endpoints, Bastion |
+| Compute & Infra | ARG | VM inventory, disk encryption, monitoring agents, AKS clusters, container registries, VMSS |
+| App & Integration | ARG | App Services, API Management, Web App security, Function Apps |
+| Storage & Data | ARG | Storage accounts, Key Vaults, secrets/certs, SQL/Postgres/MySQL/Cosmos/MongoDB |
+| OCI Architecture | Oracle Cloud | Kubernetes, integration activity, networking, compute, database, key management |
+| Workspace Health | Log Analytics | Workspace inventory, sentinel health, ingestion metrics |
 
----
-
-## Department Dashboards
-
-### Home - Executive Overview
-Loads on sign-in. Shows three department health cards with live KPIs and a recent Sentinel incidents ticker. Click any card or department tab to drill in.
-
-### CyberDefense
-*Audience: SOC team, analysts, CyberDefense lead*
-
-| Sub-dashboard | Data Sources |
-|---|---|
-| Executive Summary | Active incidents, MTTD, sign-in failures, UEBA anomalies, email/DNS blocks |
-| Sentinel Health | `SentinelHealth`, `SecurityIncident`, `SecurityAlert`, `Usage` |
-| MDE Coverage | `DeviceInfo`, `DeviceTvmSoftwareVulnerabilities` |
-| Identity Threats | `BehaviorAnalytics`, `SigninLogs`, `AADServicePrincipalSignInLogs` |
-| Email Threats | `ProofPointTAPMessagesBlocked_CL`, `ProofPointTAPMessagesDelivered_CL` |
-| DNS Threats | `Cisco_Umbrella_dns_CL`, `ASimDnsActivityLogs` |
-| Privileged Access | `AuthorizationResources`, `SigninLogs` |
-| SharePoint | `OfficeActivity` - external sharing, bulk downloads, sensitive files, permission changes |
-| Saviynt | `SaviyntAuditLogs_CL` |
-| OCI Threats | `OCI_LogsV2_CL` (identity and sign-in events) |
-| GitHub / DevOps | `GitHubAuditLogsV2_CL` |
-
-### CyberArchitecture
-*Audience: Cloud security engineers, architects, CyberArchitecture lead*
-
-| Sub-dashboard | Data Sources |
-|---|---|
-| Executive Summary | Secure Score, critical controls, attack paths, public exposure, unprotected VMs |
-| Security Posture | `securityresources` - Defender recommendations, attack paths, compliance |
-| Networking | VNet, NSG, Firewall, DDoS, Private Endpoints, Bastion |
-| Compute | VMs, AKS, App Services, Container Registry, VMSS |
-| Data & Storage | Storage accounts, Key Vaults, SQL, Cosmos DB, PostgreSQL/MySQL, backup |
-| AI & Apps | Cognitive Services, APIM, Function Apps, Logic Apps, risk scorecard |
-| OCI Infrastructure | `OCI_LogsV2_CL` (K8s, compute, networking, database, key management) |
-
-### CyberGRC
-*Audience: GRC team, compliance officers, CISO*
-
-| Sub-dashboard | Data Sources |
-|---|---|
-| Executive Summary | Policy violations, privileged roles, guest principals, compliance %, secure score |
-| Governance | Subscriptions, Management Groups, RBAC summary, tag coverage, shadow subs |
-| Policy & Compliance | `policyresources`, `securityresources` - policy states, Defender controls |
-| Access Reviews | Privileged roles, guest principals, RBAC summary, CA policy coverage |
-| Conditional Access | Sign-in failures, legacy auth, MFA success, CA policy failures, geo distribution |
-| Audit Trail | `SaviyntAuditLogs_CL`, `OfficeActivity` admin events, `OCI_LogsV2_CL` identity |
-| Regulatory | Security controls mapped to frameworks, compliance by subscription, quick wins |
+### 📋 CyberGRC
+| Tab | Data Sources | What It Shows |
+|---|---|---|
+| Executive Summary | ARG, Policy | Governance overview, access risk, policy compliance by subscription, regulatory controls |
+| Governance | ARG | Subscription overview, management groups, RBAC summary, tag coverage, shadow subscriptions |
+| Policy | Policy Insights, Defender | Policy compliance, regulatory compliance, secure score |
+| Access Control | Entra ID, ARG | Identity & PIM, CA policy coverage, privileged roles, guest principals, RBAC summary |
+| Conditional Access | Entra ID, Sentinel | Sign-in failures, legacy auth, geo distribution, CA policy coverage |
+| Audit & Activity | Azure Activity, SharePoint, OCI | Audit overview, all activity, admin activity, permission changes |
+| Regulatory | Defender for Cloud | Compliance frameworks, secure score, quick wins, remediation guidance |
 
 ---
 
-## Portal Links
+## Prerequisites
 
-Every panel row has a clickable Open button that navigates directly to the relevant portal:
-
-| Link Type | Destination |
-|---|---|
-| `PortalLink` | Direct Azure portal resource, SharePoint file (via `OfficeObjectId`), or relevant admin page |
-| `IAMLink` | Azure subscription Access Control (IAM) |
-| `DefenderLink` | Defender for Cloud recommendation blade |
-| `MDELink` | Microsoft Defender for Endpoint device page |
-| `IncidentUrl` | Direct Sentinel incident |
-| `SentinelLink` | Sentinel blade in `law-security-prod` workspace |
-| `EntraLink` | Microsoft Entra ID (sign-ins, CA policies, risky users) |
-
-SharePoint panels use `OfficeObjectId` as the direct link to the specific file or item when available, falling back to `Site_Url` for site-level events.
-
-Sentinel links open directly to the `law-security-prod` workspace at the correct blade (Incidents, Analytics Rules, Logs, Alerts, Data Connectors).
+- An **Azure AD App Registration** in your tenant with the following delegated API permissions:
+  - `https://management.azure.com/user_impersonation`
+  - `https://api.loganalytics.io/Data.Read`
+  - `https://graph.microsoft.com/SecurityEvents.Read.All`
+  - `https://graph.microsoft.com/User.Read`
+- A **Log Analytics Workspace** connected to Microsoft Sentinel
+- The app registration must have its redirect URI set to your GitHub Pages URL
 
 ---
 
-## Subscription Filter
+## Configuration
 
-After sign-in, a Subscriptions dropdown appears in the top bar. It dynamically loads all subscriptions the signed-in user has access to.
+Open `index.html` and update the `CFG` object near the top of the `<script>` block:
 
-- Default: All subscriptions selected (97 of 103 sending data to `law-security-prod`)
-- Search by subscription name or ID
-- Select All / Clear All / Apply to scope all ARG queries to specific subscriptions
-- Log Analytics queries are workspace-scoped and cover all subscriptions feeding into `law-security-prod`
-- Changing the selection clears the cache and re-runs all active panels
+```js
+const CFG = {
+  clientId:    'YOUR_APP_REGISTRATION_CLIENT_ID',
+  tenantId:    'YOUR_AZURE_TENANT_ID',
+  workspaceId: 'YOUR_LOG_ANALYTICS_WORKSPACE_ID',
+  wsResourceId: '/subscriptions/YOUR_SUB_ID/resourceGroups/YOUR_RG/providers/Microsoft.OperationalInsights/workspaces/YOUR_WORKSPACE_NAME',
+  subscriptions: ['YOUR_SUBSCRIPTION_ID'],
+};
+```
+
+| Field | Where to find it |
+|---|---|
+| `clientId` | Azure Portal → App Registrations → your app → Application (client) ID |
+| `tenantId` | Azure Portal → Azure Active Directory → Overview → Tenant ID |
+| `workspaceId` | Log Analytics Workspace → Overview → Workspace ID |
+| `wsResourceId` | Log Analytics Workspace → Properties → Resource ID |
+| `subscriptions` | Azure Portal → Subscriptions → Subscription ID |
+
+---
+
+## Deployment
+
+No build step required. Just commit `index.html` to the `main` branch of a GitHub Pages-enabled repository.
+
+```bash
+git add index.html
+git commit -m "update dashboard"
+git push origin main
+```
+
+GitHub Pages will serve it at `https://<org>.github.io/<repo>/`.
 
 ---
 
 ## Data Sources
 
-| Source | Table(s) | Coverage |
+| Source | Query Type | Used For |
 |---|---|---|
-| Microsoft Sentinel | `SecurityIncident`, `SecurityAlert`, `SentinelHealth` | All subs via law-security-prod |
-| Microsoft Entra ID | `SigninLogs`, `AADServicePrincipalSignInLogs`, `BehaviorAnalytics` | Full tenant |
-| Microsoft Defender for Endpoint | `DeviceInfo`, `DeviceTvmSoftwareVulnerabilities` | Onboarded devices |
-| Azure Resource Graph | `Resources`, `SecurityResources`, `PolicyResources`, `AuthorizationResources` | All 103 subs |
-| Cisco Umbrella | `Cisco_Umbrella_dns_CL`, `ASimDnsActivityLogs` | DNS/proxy logs |
-| ProofPoint TAP | `ProofPointTAPMessagesBlocked_CL`, `ProofPointTAPMessagesDelivered_CL` | Email threats |
-| SharePoint / M365 | `OfficeActivity` | SharePoint workload |
-| GitHub Enterprise | `GitHubAuditLogsV2_CL` | GitHub audit events |
-| Saviynt | `SaviyntAuditLogs_CL` | IAM audit logs |
-| Oracle Cloud (OCI) | `OCI_LogsV2_CL` | Identity, K8s, compute, network, DB |
-| Log Analytics Usage | `Usage` | Ingestion volume and cost |
-
-Subscription coverage: 97 of 103 subscriptions sending data to `law-security-prod`.
-
----
-
-## How to Update the Dashboard
-
-1. Edit `index.html` locally or download from the repo
-2. Make your changes
-3. Go to **github.com/edevine-eagle-org/CyberDefense**
-4. Click **Add file -> Upload files**
-5. Drop in the updated `index.html` and commit
-6. GitHub Pages deploys automatically - allow ~60 seconds
+| Microsoft Sentinel | KQL (Log Analytics) | Incidents, alerts, sign-in logs, UEBA, Proofpoint, Umbrella, MDE |
+| Azure Resource Graph | ARG | Resources, RBAC, policy, posture, networking, storage |
+| Microsoft Defender for Cloud | ARG | Secure score, recommendations, attack paths, compliance |
+| Microsoft Entra ID | Entra / Sentinel | Sign-ins, risky users, CA policies, service principals |
+| Microsoft Defender for Endpoint | MDE API | Device inventory, onboarding status, vulnerabilities |
+| Proofpoint TAP | Custom Log (KQL) | Email threats blocked and delivered |
+| Cisco Umbrella | Custom Log (KQL) | DNS blocks and malicious domains |
+| Oracle Cloud Infrastructure | Custom Log (KQL) | OCI identity, compute, networking, database events |
+| Saviynt ECM | Custom Log (KQL) | IAM audit, access requests, user management |
+| GitHub Enterprise | Custom Log (KQL) | Dependabot, secret scanning, audit log, actions |
+| Azure Activity | KQL | Governance audit, permission changes |
+| SharePoint / Office 365 | KQL | File activity, external sharing, admin changes |
 
 ---
 
-## How to Add a New Query Panel
+## Technology Stack
 
-Find the relevant panel array in `index.html` inside `const PANELS={...}` and add:
-
-```js
-{
-  label: 'My Panel Title',
-  type: 'arg',         // 'arg' for Resource Graph, 'la' for Log Analytics
-  viz: 'timechart',    // optional: 'timechart', 'barchart', 'tiles' - omit for table
-  query: `Resources
-| where type == 'microsoft.compute/virtualmachines'
-| extend PortalLink = strcat('https://portal.azure.com/#resource', id)
-| project VMName=name, Location=location, PortalLink`
-}
-```
-
-**Rules:**
-- Every panel must include a link column (`PortalLink`, `DefenderLink`, `MDELink`, `IAMLink`, `IncidentUrl`, `SentinelLink`, or `EntraLink`) - these render as clickable Open buttons automatically
-- LA panels must use `{TimeRange}` instead of hardcoded `ago(...)` - it is replaced at query time with the selected time range
-- If the query uses `summarize`, define the link column after the summarize (or include it in the summarize with `any(PortalLink)`)
-- ARG `union` queries mixing different table types (e.g. `Resources` + `securityresources`) are not supported - use separate panels
+- **Auth:** [`@azure/msal-browser`](https://github.com/AzureAD/microsoft-authentication-library-for-js) v2.38.3
+- **Charts:** [`Chart.js`](https://www.chartjs.org/) v4.4.2
+- **Fonts:** IBM Plex Mono, IBM Plex Sans, Rajdhani (Google Fonts)
+- **No frameworks.** Pure HTML, CSS, and vanilla JavaScript.
 
 ---
 
-## How to Add a KPI Tile
+## Security & Privacy
 
-Add an entry to the relevant array in `const KDEFS={...}`:
-
-```js
-{
-  l: 'My KPI Label',
-  c: 'kc-cy',   // kc-cy=cyan  kc-rd=red  kc-gn=green  kc-yw=yellow  kc-bl=blue  kc-or=orange
-  q: { t: 'arg', q: `Resources | summarize Count=count()` },
-  k: 'Count'    // column name to display
-}
-```
+- Authentication is handled entirely by Microsoft MSAL — no credentials are stored anywhere in the app.
+- All API calls are made directly from the browser to Microsoft APIs using your delegated token.
+- No data is sent to any third-party server.
+- No analytics, tracking, or logging of any kind.
+- Queries are read-only — the dashboard makes no write operations to any Azure resource.
 
 ---
 
-## Config Reference
+## Author
 
-At the top of `index.html`:
-
-```js
-const CFG = {
-  clientId:     '467a1486-6459-4661-8397-c1dd41cd38e7',
-  tenantId:     'd810b06c-d004-4d52-b0aa-4f3581ee7020',
-  workspaceId:  '7123fe2d-f76e-4027-8784-f9b6eec61ba8',
-  wsResourceId: '/subscriptions/7ca56f5e-a44c-4311-a34a-0729be8f5a6e/resourceGroups/rg-security-prod/providers/Microsoft.OperationalInsights/workspaces/law-security-prod',
-};
-```
-
-Subscriptions are loaded dynamically at runtime. If the App Registration is recreated or the workspace changes, update these values and re-upload.
-
----
-
-## Files in This Repo
-
-| File | Purpose |
-|---|---|
-| `index.html` | The entire dashboard - single self-contained file |
-| `abs-logo-blue.jpg` | ABS logo JPG (reserved) |
-| `abs-logo-blue.png` | ABS logo PNG with transparency (reserved) |
-| `README.md` | This file |
-
----
-
-## Maintainer
-
-**Eddie Devine** - SIEM Engineer, ABS CyberDefense
-`EDevine-C0@eagle.org`
+**Eddie Devine** — SIEM Engineer, ABS CyberDefense  
+American Bureau of Shipping
