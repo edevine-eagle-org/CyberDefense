@@ -1063,8 +1063,7 @@ d5:[
 | where type == 'microsoft.resources/subscriptions'
 | extend MgChain=array_length(properties.managementGroupAncestorsChain)
 | where MgChain==0 or isnull(MgChain)
-| project SubscriptionName=name, SubscriptionId=subscriptionId, State=tostring(properties.state)
-| extend PortalLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',subscriptionId)
+| project SubscriptionName=name, SubscriptionId=subscriptionId, State=tostring(properties.state), PortalLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',subscriptionId)
 | order by SubscriptionName asc`},
   {label:'Sign-in Anomalies',type:'la',query:`SigninLogs
 | where TimeGenerated {TimeRange}
@@ -1890,7 +1889,7 @@ d11:[
     Deletes = countif(Operation in ('FileDeleted','FileRecycled')),
     ExternalShares = countif(Operation in ('SharingSet','SharingLinkCreated') and ExternalAccess == true)
     by bin(TimeGenerated,1d)
-| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/settings.aspx'
+| extend PortalLink = 'https://compliance.microsoft.com/auditlogsearch'
 | order by TimeGenerated asc`},
 
   {label:'External Sharing',type:'la',query:`OfficeActivity
@@ -1902,7 +1901,7 @@ d11:[
 | extend SharedWith = tostring(UserSharedWith)
 | extend SharingType = tostring(SharingType)
 | extend IsExternal = ExternalAccess == true
-| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/online/AdminHome.aspx#/sharing'
+| extend PortalLink = tostring(Site_Url)
 | extend FileLink = tostring(OfficeObjectId)
 | project TimeGenerated, Operation, UserId, SharedWith, SharingType, IsExternal, FileName, SiteUrl, PortalLink, FileLink
 | order by TimeGenerated desc | take 500`},
@@ -1937,7 +1936,7 @@ d11:[
     'AddedToGroup','RemovedFromGroup',
     'WebAccessRequestApproverModified','WebMembersCanShareModified')
 | extend SiteUrl = tostring(Site_Url)
-| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/online/AdminHome.aspx#/accessControl'
+| extend PortalLink = strcat(tostring(Site_Url), '/_layouts/15/user.aspx')
 | project TimeGenerated, Operation, UserId, SiteUrl, PortalLink
 | order by TimeGenerated desc | take 500`},
 
@@ -1950,7 +1949,7 @@ d11:[
 | extend SiteUrl = tostring(Site_Url)
 | where FileExt in ('xlsx','xls','csv','pdf','docx','doc','pptx','zip','7z','ps1','py','sh','key','pem','pfx','json','sql')
     or SiteUrl has_any ('security','confidential','restricted','hr','legal','finance','compliance','executive')
-| extend PortalLink = 'https://compliance.microsoft.com/auditlogsearch'
+| extend PortalLink = tostring(Site_Url)
 | extend FileLink = tostring(OfficeObjectId)
 | project TimeGenerated, Operation, UserId, FileName, FileExt, SiteUrl, PortalLink, FileLink
 | order by TimeGenerated desc | take 500`},
@@ -1965,8 +1964,9 @@ d11:[
     Operation has 'Company','Company Link',
     Operation has 'Secure','Secure Link',
     Operation has 'Sharing','Sharing Link','Other')
-| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/online/AdminHome.aspx#/sharing'
-| project TimeGenerated, Operation, LinkType, UserId, FileName, SiteUrl, PortalLink
+| extend PortalLink = tostring(Site_Url)
+| extend FileLink = tostring(OfficeObjectId)
+| project TimeGenerated, Operation, LinkType, UserId, FileName, SiteUrl, PortalLink, FileLink
 | order by TimeGenerated desc | take 500`},
 
   {label:'Admin Activity',type:'la',query:`OfficeActivity
@@ -1979,7 +1979,7 @@ d11:[
     'SiteIBModeSet','SiteIBModeChanged','SiteFileVersionTrimmingSettingsChanged',
     'WebRequestAccessModified','SiteDesignInvoked')
 | extend SiteUrl = tostring(Site_Url)
-| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/online/AdminHome.aspx#/siteManagement'
+| extend PortalLink = tostring(Site_Url)
 | project TimeGenerated, Operation, UserId, SiteUrl, PortalLink
 | order by TimeGenerated desc | take 500`},
 
