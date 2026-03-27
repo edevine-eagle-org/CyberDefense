@@ -574,8 +574,16 @@ d5:[
 | extend RoleId = tolower(tostring(properties.roleDefinitionId))
 | extend Scope = tostring(properties.scope)
 | extend ScopeLevel = case(Scope has '/resourceGroups/','ResourceGroup',Scope has '/subscriptions/','Subscription',Scope has '/providers/Microsoft.Management/','ManagementGroup','Unknown')
-| extend RoleName = case(RoleId has '8e3af657-a8ff-443c-a75c-2fe8c4bcb635','Owner',RoleId has 'b24988ac-6180-42a0-ab88-20f7382dd24c','Contributor',RoleId has '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9','User Access Administrator',RoleId has 'fb1c8493-542b-48eb-b624-b4c8fea62acd','Security Admin',RoleId has '62e90394-69f5-4237-9190-012177145e10','Global Administrator',RoleId has 'e8611ab8-c189-46e8-94e1-60213ab1f814','Privileged Role Administrator','Other')
-| where RoleName != 'Other'
+| extend RoleName = case(
+    RoleId has '8e3af657-a8ff-443c-a75c-2fe8c4bcb635','Owner',
+    RoleId has 'b24988ac-6180-42a0-ab88-20f7382dd24c','Contributor',
+    RoleId has '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9','User Access Administrator',
+    RoleId has 'fb1c8493-542b-48eb-b624-b4c8fea62acd','Security Admin',
+    RoleId has '62e90394-69f5-4237-9190-012177145e10','Global Administrator',
+    RoleId has 'e8611ab8-c189-46e8-94e1-60213ab1f814','Privileged Role Administrator',
+    RoleId has 'acdd72a7-3385-48ef-bd42-f606fba81ae7','Reader',
+    RoleId has '7f951dda-4ed3-4680-a7ca-43fe172d538d','AcrPull',
+    tostring(split(RoleId,'/')[-1]))
 | extend IAMLink = strcat('https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade/subscriptionId/',subscriptionId)
 | project RoleName, PrincipalType, ScopeLevel, Scope, IAMLink, SubscriptionId=subscriptionId
 | order by RoleName asc, PrincipalType asc | take 1000`},
@@ -816,8 +824,15 @@ d1:[
 | extend PrincipalType=tostring(properties.principalType)
 | extend RoleId=tolower(tostring(properties.roleDefinitionId))
 | extend Scope=tostring(properties.scope)
-| extend RoleName=case(RoleId has '8e3af657-a8ff-443c-a75c-2fe8c4bcb635','Owner',RoleId has 'b24988ac-6180-42a0-ab88-20f7382dd24c','Contributor',RoleId has '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9','User Access Administrator',RoleId has 'fb1c8493-542b-48eb-b624-b4c8fea62acd','Security Admin',RoleId has '62e90394-69f5-4237-9190-012177145e10','Global Administrator',RoleId has 'e8611ab8-c189-46e8-94e1-60213ab1f814','Privileged Role Administrator','Other')
-| where RoleName!='Other'
+| extend RoleName=case(
+    RoleId has '8e3af657-a8ff-443c-a75c-2fe8c4bcb635','Owner',
+    RoleId has 'b24988ac-6180-42a0-ab88-20f7382dd24c','Contributor',
+    RoleId has '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9','User Access Administrator',
+    RoleId has 'fb1c8493-542b-48eb-b624-b4c8fea62acd','Security Admin',
+    RoleId has '62e90394-69f5-4237-9190-012177145e10','Global Administrator',
+    RoleId has 'e8611ab8-c189-46e8-94e1-60213ab1f814','Privileged Role Administrator',
+    'Other')
+| where RoleName != 'Other'
 | extend IAMLink=strcat('https://portal.azure.com/#view/Microsoft_Azure_AD/IAMBlade/subscriptionId/',subscriptionId)
 | project RoleName,PrincipalType,Scope,IAMLink,SubscriptionId=subscriptionId
 | order by RoleName asc | take 1000`},
