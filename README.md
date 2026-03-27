@@ -26,6 +26,7 @@ Each department has its own Executive Summary dashboard plus dedicated sub-dashb
 Sign in with your ABS Azure AD account (`@eagle.org` or `-c0` accounts). The dashboard uses MSAL.js with PKCE - no passwords or secrets are stored anywhere.
 
 - **App Registration:** `EA-SecurityDashboard-Prod-AppReg`
+- **Client ID:** `467a1486-6459-4661-8397-c1dd41cd38e7`
 - **Tenant:** American Bureau of Shipping (`d810b06c-d004-4d52-b0aa-4f3581ee7020`)
 - **Workspace:** `law-security-prod` (`7123fe2d-f76e-4027-8784-f9b6eec61ba8`)
 
@@ -53,7 +54,7 @@ Loads on sign-in. Shows three department health cards with live KPIs and a recen
 | Email Threats | `ProofPointTAPMessagesBlocked_CL`, `ProofPointTAPMessagesDelivered_CL` |
 | DNS Threats | `Cisco_Umbrella_dns_CL`, `ASimDnsActivityLogs` |
 | Privileged Access | `AuthorizationResources`, `SigninLogs` |
-| SharePoint | `OfficeActivity` (exfil signals - external sharing, bulk downloads, sensitive files) |
+| SharePoint | `OfficeActivity` - external sharing, bulk downloads, sensitive files, permission changes |
 | Saviynt | `SaviyntAuditLogs_CL` |
 | OCI Threats | `OCI_LogsV2_CL` (identity and sign-in events) |
 | GitHub / DevOps | `GitHubAuditLogsV2_CL` |
@@ -86,14 +87,34 @@ Loads on sign-in. Shows three department health cards with live KPIs and a recen
 
 ---
 
+## Portal Links
+
+Every panel row has a clickable Open button that navigates directly to the relevant portal:
+
+| Link Type | Destination |
+|---|---|
+| `PortalLink` | Direct Azure portal resource, SharePoint file (via `OfficeObjectId`), or relevant admin page |
+| `IAMLink` | Azure subscription Access Control (IAM) |
+| `DefenderLink` | Defender for Cloud recommendation blade |
+| `MDELink` | Microsoft Defender for Endpoint device page |
+| `IncidentUrl` | Direct Sentinel incident |
+| `SentinelLink` | Sentinel blade in `law-security-prod` workspace |
+| `EntraLink` | Microsoft Entra ID (sign-ins, CA policies, risky users) |
+
+SharePoint panels use `OfficeObjectId` as the direct link to the specific file or item when available, falling back to `Site_Url` for site-level events.
+
+Sentinel links open directly to the `law-security-prod` workspace at the correct blade (Incidents, Analytics Rules, Logs, Alerts, Data Connectors).
+
+---
+
 ## Subscription Filter
 
 After sign-in, a Subscriptions dropdown appears in the top bar. It dynamically loads all subscriptions the signed-in user has access to.
 
-- Default: All subscriptions selected (97 of 103 sending data)
+- Default: All subscriptions selected (97 of 103 sending data to `law-security-prod`)
 - Search by subscription name or ID
 - Select All / Clear All / Apply to scope all ARG queries to specific subscriptions
-- Log Analytics queries are workspace-scoped and always cover all subscriptions feeding into `law-security-prod`
+- Log Analytics queries are workspace-scoped and cover all subscriptions feeding into `law-security-prod`
 - Changing the selection clears the cache and re-runs all active panels
 
 ---
@@ -141,13 +162,14 @@ Find the relevant panel array in `index.html` inside `const PANELS={...}` and ad
   query: `Resources
 | where type == 'microsoft.compute/virtualmachines'
 | extend PortalLink = strcat('https://portal.azure.com/#resource', id)
-| summarize Count=count() by location, PortalLink`
+| project VMName=name, Location=location, PortalLink`
 }
 ```
 
 **Rules:**
 - Every panel must include a link column (`PortalLink`, `DefenderLink`, `MDELink`, `IAMLink`, `IncidentUrl`, `SentinelLink`, or `EntraLink`) - these render as clickable Open buttons automatically
-- LA panels must use `{TimeRange}` instead of hardcoded `ago(...)` - it is replaced at query time with the user's selected time range
+- LA panels must use `{TimeRange}` instead of hardcoded `ago(...)` - it is replaced at query time with the selected time range
+- If the query uses `summarize`, define the link column after the summarize (or include it in the summarize with `any(PortalLink)`)
 - ARG `union` queries mixing different table types (e.g. `Resources` + `securityresources`) are not supported - use separate panels
 
 ---
@@ -176,11 +198,11 @@ const CFG = {
   clientId:     '467a1486-6459-4661-8397-c1dd41cd38e7',
   tenantId:     'd810b06c-d004-4d52-b0aa-4f3581ee7020',
   workspaceId:  '7123fe2d-f76e-4027-8784-f9b6eec61ba8',
-  wsResourceId: '/subscriptions/7ca56f5e-.../workspaces/law-security-prod',
+  wsResourceId: '/subscriptions/7ca56f5e-a44c-4311-a34a-0729be8f5a6e/resourceGroups/rg-security-prod/providers/Microsoft.OperationalInsights/workspaces/law-security-prod',
 };
 ```
 
-Subscriptions are loaded dynamically at runtime - no subscription IDs need to be hardcoded. If the App Registration is recreated or the workspace changes, update these four values and re-upload.
+Subscriptions are loaded dynamically at runtime. If the App Registration is recreated or the workspace changes, update these values and re-upload.
 
 ---
 
@@ -197,5 +219,5 @@ Subscriptions are loaded dynamically at runtime - no subscription IDs need to be
 
 ## Maintainer
 
-**Eddie Devine** - SIEM Engineer, ABS CyberDefense  
+**Eddie Devine** - SIEM Engineer, ABS CyberDefense
 `EDevine-C0@eagle.org`
