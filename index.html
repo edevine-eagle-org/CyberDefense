@@ -20,8 +20,8 @@
   --r:4px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--txt);font-family:var(--fb);font-size:13px;line-height:1.5;min-height:100vh;overflow-x:hidden;}
+html{scroll-behavior:smooth;height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--txt);font-family:var(--fb);font-size:13px;line-height:1.5;height:100%;overflow:hidden;}
 body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);pointer-events:none;z-index:9999;}
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
@@ -107,7 +107,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .dtab.act.arch{color:#ffa500;border-bottom-color:#ffa500;}
 .dtab.act.grc{color:#51cf66;border-bottom-color:#51cf66;}
 /* ── EXEC HOME ── */
-#homeView{display:none;flex-direction:column;gap:16px;padding:16px 24px;min-height:calc(100vh - 52px);}
+#homeView{display:none;flex-direction:column;gap:16px;padding:16px 24px;height:calc(100vh - 88px);overflow:hidden;}
 .home-hdr{text-align:center;padding:8px 0;}
 .home-hdr h2{font-family:var(--fh);font-size:22px;color:var(--cy);letter-spacing:4px;text-transform:uppercase;margin:0 0 4px;}
 .home-hdr p{font-family:var(--fm);font-size:11px;color:var(--txt2);margin:0;}
@@ -137,7 +137,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .home-incidents{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
 .hi-title{font-family:var(--fm);font-size:10px;color:var(--txt2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
 /* ── TACTICAL OPS PANEL ─────────────────────────────────────── */
-#tacticalOps{background:#070707;border:1px solid #1c1c1c;border-radius:6px;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:420px;}
+#tacticalOps{background:#070707;border:1px solid #1c1c1c;border-radius:6px;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0;}
 .tac-ticker{background:#0a0000;border-bottom:1px solid #2a0000;padding:5px 18px;display:flex;align-items:center;gap:14px;overflow:hidden;flex-shrink:0;}
 .tac-ticker-label{font-family:'Courier New',monospace;font-size:9px;color:#ff2020;font-weight:700;letter-spacing:2.5px;white-space:nowrap;display:flex;align-items:center;gap:7px;flex-shrink:0;}
 .tac-ticker-dot{width:7px;height:7px;background:#ff2020;border-radius:50%;animation:tacblink 1.2s infinite;box-shadow:0 0 6px #ff2020;}
