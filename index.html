@@ -149,7 +149,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 @keyframes tacscroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}  }
 .tac-ticker-item{font-family:'Courier New',monospace;font-size:10px;color:#cc0000;letter-spacing:0.5px;}
 .tac-ticker-item span{color:#ff4040;font-weight:700;}
-.tac-body{display:grid;grid-template-columns:240px 1fr 280px;min-height:280px;position:relative;z-index:1;}
+.tac-body{display:grid;grid-template-columns:220px 1fr 220px 240px;min-height:320px;position:relative;z-index:1;}
 .tac-col{padding:14px 16px;border-right:1px solid #1a1a1a;}
 .tac-col:last-child{border-right:none;}
 .tac-col-title{font-family:'Courier New',monospace;font-size:9px;color:#ff2020;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1a0000;display:flex;align-items:center;gap:6px;}
@@ -370,10 +370,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
       <button class="dc-btn">Open CyberGRC Dashboard →</button>
     </div>
   </div>
-  <div class="home-incidents">
-    <div class="hi-title">🚨 Recent Sentinel Incidents</div>
-    <div id="home-incidents-list"><div class="sbox sk" style="padding:12px">Loading...</div></div>
-  </div>
+
   <div id="tacticalOps">
     <div class="tac-ticker">
       <div class="tac-ticker-label"><span class="tac-ticker-dot"></span>LIVE THREAT FEED</div>
@@ -393,12 +390,21 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
           <div class="tac-big-num" id="tacBigNum">—</div>
           <div class="tac-big-lbl">ACTIVE INCIDENTS</div>
         </div>
-        <div class="tac-metrics-grid" id="tacMetricsGrid">
+        <div class="tac-metrics-grid">
           <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM0">…</div><div class="tac-metric-box-lbl">ALERTS 7D</div></div>
           <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM1">…</div><div class="tac-metric-box-lbl">SIGN-IN FAILS</div></div>
           <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM2">…</div><div class="tac-metric-box-lbl">UEBA ANOMALIES</div></div>
           <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM3">…</div><div class="tac-metric-box-lbl">DNS BLOCKED</div></div>
+          <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM4">…</div><div class="tac-metric-box-lbl">EMAILS BLOCKED</div></div>
+          <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM5">…</div><div class="tac-metric-box-lbl">THREATS DELIVERED</div></div>
         </div>
+      </div>
+      <div class="tac-col">
+        <div class="tac-col-title">EMAIL &amp; DNS THREATS</div>
+        <div class="tac-col-title" style="font-size:8px;color:#662200;margin-top:-6px;margin-bottom:8px;border:none;padding:0">▶ PROOFPOINT BLOCKED (24H)</div>
+        <div id="tacEmailFeed"><div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">LOADING...</div></div>
+        <div class="tac-col-title" style="margin-top:10px;font-size:8px">▶ TOP DNS BLOCKED DOMAINS</div>
+        <div id="tacDnsFeed"><div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:4px 0">LOADING...</div></div>
       </div>
       <div class="tac-col">
         <div class="tac-col-title">LIVE INCIDENT FEED</div>
@@ -612,7 +618,6 @@ async function loadHomeKPIs(){
       if(el){el.textContent=v!==undefined?Number(v).toLocaleString():'—';el.classList.remove('ldg');}
     }catch{const el=document.getElementById(d.id);if(el){el.textContent='—';el.classList.remove('ldg');}}
   });
-  loadHomeIncidents();
 }
 
 
@@ -629,6 +634,8 @@ async function loadTacticalOps(){
       {id:'tacM1',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`,k:'Count'},
       {id:'tacM2',q:`BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Count=count()`,k:'Count'},
       {id:'tacM3',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=count()`,k:'Count'},
+      {id:'tacM4',q:`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`,k:'Count'},
+      {id:'tacM5',q:`ProofPointTAPMessagesDelivered_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Count=count()`,k:'Count'},
     ];
     metrics.forEach(async m=>{
       try{
@@ -691,6 +698,42 @@ async function loadTacticalOps(){
       const items=alerts.map(a=>`<span class="tac-ticker-item"><span>${a.ProductName||'SENTINEL'}</span> &nbsp;▸&nbsp; ${a.AlertName} &nbsp;[${a.Count}]</span>`).join('');
       ticker.innerHTML=items+items; // double for seamless loop
     }
+
+    // Email threats feed
+    try{
+      const emails=await runLA(`ProofPointTAPMessagesBlocked_CL
+|where TimeGenerated>=ago(24h)
+|extend T=todynamic(threatsInfoMap_s)|mv-expand Threat=T
+|extend Classification=tostring(Threat.classification)
+|summarize Count=count() by sender_s, Classification
+|order by Count desc|take 6`);
+      const ef=document.getElementById('tacEmailFeed');
+      if(ef&&emails&&emails.length){
+        ef.innerHTML=emails.map(r=>`<div class="tac-threat-row">
+          <div class="tac-threat-name">${(r.sender_s||'unknown').replace(/['"]/g,'').substring(0,28)}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-family:Courier New,monospace;font-size:9px;color:#662200;text-transform:uppercase">${r.Classification||'unknown'}</span>
+            <span class="tac-threat-val">${r.Count}</span>
+          </div>
+        </div>`).join('');
+      }
+    }catch{}
+
+    // DNS threats feed
+    try{
+      const dns=await runLA(`Cisco_Umbrella_dns_CL
+|where TimeGenerated>=ago(24h)
+|where Action_s=='Blocked'
+|summarize Count=count() by Domain_s, tostring(Blocked_Categories_s)
+|order by Count desc|take 6`);
+      const df=document.getElementById('tacDnsFeed');
+      if(df&&dns&&dns.length){
+        df.innerHTML=dns.map(r=>`<div class="tac-threat-row">
+          <div class="tac-threat-name">${(r.Domain_s||'unknown').substring(0,28)}</div>
+          <span class="tac-threat-val">${r.Count}</span>
+        </div>`).join('');
+      }
+    }catch{}
 
     // Last update
     const lu=document.getElementById('tacLastUpdate');
