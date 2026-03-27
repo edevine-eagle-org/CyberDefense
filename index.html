@@ -366,7 +366,7 @@ function renderChart(rows,cid,type){
 }
 
 // ── RENDER ────────────────────────────────────────────────────
-const URLC=new Set(['PortalLink','IAMLink','DefenderLink','MDELink','IncidentUrl','SentinelLink','EntraLink']);
+const URLC=new Set(['PortalLink','IAMLink','DefenderLink','MDELink','IncidentUrl','SentinelLink','EntraLink','FileLink']);
 function renderRes(rows,cid,viz){
   if(viz==='tiles')return renderTiles(rows,cid);
   if(viz==='timechart')return renderChart(rows,cid,'line');
@@ -1311,7 +1311,7 @@ d11:[
     Deletes = countif(Operation in ('FileDeleted','FileRecycled')),
     ExternalShares = countif(Operation in ('SharingSet','SharingLinkCreated') and ExternalAccess == true)
     by bin(TimeGenerated,1d)
-| extend PortalLink = 'https://admin.microsoft.com/sharepoint'
+| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/settings.aspx'
 | order by TimeGenerated asc`},
 
   {label:'External Sharing',type:'la',query:`OfficeActivity
@@ -1323,8 +1323,9 @@ d11:[
 | extend SharedWith = tostring(UserSharedWith)
 | extend SharingType = tostring(SharingType)
 | extend IsExternal = ExternalAccess == true
-| extend PortalLink = strcat('https://eagle.sharepoint.com/_layouts/15/viewlsts.aspx?view=14')
-| project TimeGenerated, Operation, UserId, SharedWith, SharingType, IsExternal, FileName, SiteUrl, PortalLink
+| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/online/AdminHome.aspx#/sharing'
+| extend FileLink = tostring(OfficeObjectId)
+| project TimeGenerated, Operation, UserId, SharedWith, SharingType, IsExternal, FileName, SiteUrl, PortalLink, FileLink
 | order by TimeGenerated desc | take 500`},
 
   {label:'Bulk Downloads',type:'la',query:`OfficeActivity
@@ -1357,7 +1358,7 @@ d11:[
     'AddedToGroup','RemovedFromGroup',
     'WebAccessRequestApproverModified','WebMembersCanShareModified')
 | extend SiteUrl = tostring(Site_Url)
-| extend PortalLink = strcat('https://eagle.sharepoint.com/_layouts/15/user.aspx')
+| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/online/AdminHome.aspx#/accessControl'
 | project TimeGenerated, Operation, UserId, SiteUrl, PortalLink
 | order by TimeGenerated desc | take 500`},
 
@@ -1370,8 +1371,9 @@ d11:[
 | extend SiteUrl = tostring(Site_Url)
 | where FileExt in ('xlsx','xls','csv','pdf','docx','doc','pptx','zip','7z','ps1','py','sh','key','pem','pfx','json','sql')
     or SiteUrl has_any ('security','confidential','restricted','hr','legal','finance','compliance','executive')
-| extend PortalLink = strcat('https://compliance.microsoft.com/auditlogsearch')
-| project TimeGenerated, Operation, UserId, FileName, FileExt, SiteUrl, PortalLink
+| extend PortalLink = 'https://compliance.microsoft.com/auditlogsearch'
+| extend FileLink = tostring(OfficeObjectId)
+| project TimeGenerated, Operation, UserId, FileName, FileExt, SiteUrl, PortalLink, FileLink
 | order by TimeGenerated desc | take 500`},
 
   {label:'Anonymous Links',type:'la',query:`OfficeActivity
@@ -1384,7 +1386,7 @@ d11:[
     Operation has 'Company','Company Link',
     Operation has 'Secure','Secure Link',
     Operation has 'Sharing','Sharing Link','Other')
-| extend PortalLink = 'https://admin.microsoft.com/sharepoint#/sharing'
+| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/online/AdminHome.aspx#/sharing'
 | project TimeGenerated, Operation, LinkType, UserId, FileName, SiteUrl, PortalLink
 | order by TimeGenerated desc | take 500`},
 
@@ -1398,7 +1400,7 @@ d11:[
     'SiteIBModeSet','SiteIBModeChanged','SiteFileVersionTrimmingSettingsChanged',
     'WebRequestAccessModified','SiteDesignInvoked')
 | extend SiteUrl = tostring(Site_Url)
-| extend PortalLink = 'https://admin.microsoft.com/sharepoint#/siteManagement'
+| extend PortalLink = 'https://eagle.sharepoint.com/_layouts/15/online/AdminHome.aspx#/siteManagement'
 | project TimeGenerated, Operation, UserId, SiteUrl, PortalLink
 | order by TimeGenerated desc | take 500`},
 
@@ -1414,7 +1416,7 @@ d11:[
     UniqueFiles = dcount(FileName),
     LastActivity = max(TimeGenerated)
     by UserId, Operation, SiteUrl
-| extend PortalLink = strcat('https://eagle.sharepoint.com/_layouts/15/recycleBin.aspx')
+| extend PortalLink = strcat(SiteUrl,'/_layouts/15/recycleBin.aspx?view=5')
 | order by Count desc | take 500`},
 ],
 d10:[
