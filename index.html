@@ -137,52 +137,59 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .home-incidents{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
 .hi-title{font-family:var(--fm);font-size:10px;color:var(--txt2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
 /* ── TACTICAL OPS PANEL ─────────────────────────────────────── */
-#tacticalOps{background:#080808;border:1px solid #1a1a1a;border-radius:4px;overflow:hidden;position:relative;flex:1;display:flex;flex-direction:column;min-height:400px;}
-#tacticalOps::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,0,0,0.012) 2px,rgba(255,0,0,0.012) 4px);pointer-events:none;z-index:0;}
-.tac-ticker{background:#0d0000;border-bottom:1px solid #ff2020;padding:5px 16px;display:flex;align-items:center;gap:12px;overflow:hidden;position:relative;z-index:1;}
-.tac-ticker-label{font-family:'Courier New',monospace;font-size:10px;color:#ff2020;font-weight:700;letter-spacing:2px;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;}
-.tac-ticker-dot{width:6px;height:6px;background:#ff2020;border-radius:50%;animation:tacblink 1s infinite;}
-@keyframes tacblink{0%,100%{opacity:1;}50%{opacity:0;}}
-.tac-ticker-scroll{flex:1;overflow:hidden;position:relative;}
-.tac-ticker-inner{display:flex;gap:40px;white-space:nowrap;animation:tacscroll 40s linear infinite;}
+#tacticalOps{background:#070707;border:1px solid #1c1c1c;border-radius:6px;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:420px;}
+.tac-ticker{background:#0a0000;border-bottom:1px solid #2a0000;padding:5px 18px;display:flex;align-items:center;gap:14px;overflow:hidden;flex-shrink:0;}
+.tac-ticker-label{font-family:'Courier New',monospace;font-size:9px;color:#ff2020;font-weight:700;letter-spacing:2.5px;white-space:nowrap;display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.tac-ticker-dot{width:7px;height:7px;background:#ff2020;border-radius:50%;animation:tacblink 1.2s infinite;box-shadow:0 0 6px #ff2020;}
+@keyframes tacblink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.tac-ticker-scroll{flex:1;overflow:hidden;mask-image:linear-gradient(to right,transparent,black 40px,black calc(100% - 40px),transparent);}
+.tac-ticker-inner{display:flex;gap:48px;white-space:nowrap;animation:tacscroll 50s linear infinite;}
 .tac-ticker-inner:hover{animation-play-state:paused;}
-@keyframes tacscroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}  }
-.tac-ticker-item{font-family:'Courier New',monospace;font-size:10px;color:#cc0000;letter-spacing:0.5px;}
-.tac-ticker-item span{color:#ff4040;font-weight:700;}
-.tac-body{display:grid;grid-template-columns:220px 1fr 220px 240px;flex:1;min-height:0;position:relative;z-index:1;overflow:hidden;}
-.tac-col{padding:14px 16px;border-right:1px solid #1a1a1a;overflow-y:auto;scrollbar-width:none;}
+@keyframes tacscroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.tac-ticker-item{font-family:'Courier New',monospace;font-size:10px;color:#882020;letter-spacing:0.5px;}
+.tac-ticker-item span{color:#ff5040;font-weight:700;}
+/* KPI strip */
+.tac-kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid #1a0000;flex-shrink:0;}
+.tac-kpi{padding:10px 16px;border-right:1px solid #140000;text-align:center;}
+.tac-kpi:last-child{border-right:none;}
+.tac-kpi-val{font-family:'Courier New',monospace;font-size:22px;font-weight:700;color:#ff3030;line-height:1;text-shadow:0 0 12px rgba(255,48,48,0.3);}
+.tac-kpi-val.kv-or{color:#ff6020;text-shadow:0 0 12px rgba(255,96,32,0.3);}
+.tac-kpi-val.kv-yw{color:#ffd020;text-shadow:0 0 12px rgba(255,208,32,0.3);}
+.tac-kpi-val.kv-cy{color:#20c0ff;text-shadow:0 0 12px rgba(32,192,255,0.3);}
+.tac-kpi-lbl{font-family:'Courier New',monospace;font-size:8px;color:#441010;letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+/* Body */
+.tac-body{display:grid;grid-template-columns:1fr 1fr 1fr;flex:1;min-height:0;overflow:hidden;}
+.tac-col{padding:16px;border-right:1px solid #140000;display:flex;flex-direction:column;overflow:hidden;}
 .tac-col:last-child{border-right:none;}
-.tac-col-title{font-family:'Courier New',monospace;font-size:9px;color:#ff2020;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1a0000;display:flex;align-items:center;gap:6px;}
-.tac-col-title::before{content:'▶';font-size:7px;}
-/* Left col - threat list */
-.tac-threat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #111;font-family:'Courier New',monospace;font-size:11px;color:#888;}
-.tac-threat-row:last-child{border-bottom:none;}
-.tac-threat-name{color:#ccc;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.tac-threat-val{color:#ff2020;font-weight:700;font-size:12px;}
-.tac-threat-bar{height:2px;background:#1a0000;margin-top:2px;width:100%;}
-.tac-threat-bar-fill{height:100%;background:#ff2020;transition:width 1s;}
-/* Center col */
-.tac-center{padding:14px 20px;overflow-y:auto;scrollbar-width:none;}
-.tac-big-metric{text-align:center;margin-bottom:16px;}
-.tac-big-num{font-family:'Courier New',monospace;font-size:72px;font-weight:700;color:#ff2020;line-height:1;text-shadow:0 0 30px rgba(255,32,32,0.5);}
-.tac-big-lbl{font-family:'Courier New',monospace;font-size:9px;color:#666;letter-spacing:3px;text-transform:uppercase;margin-top:4px;}
-.tac-metrics-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;}
-.tac-metric-box{background:#0d0000;border:1px solid #1a0000;padding:8px 10px;border-radius:2px;}
-.tac-metric-box-val{font-family:'Courier New',monospace;font-size:20px;font-weight:700;color:#ff6040;}
-.tac-metric-box-lbl{font-family:'Courier New',monospace;font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
-/* Right col - live feed */
-.tac-feed-item{padding:6px 0;border-bottom:1px solid #0f0f0f;display:grid;grid-template-columns:8px 1fr auto;gap:6px;align-items:start;}
+.tac-col-hdr{font-family:'Courier New',monospace;font-size:9px;color:#ff2020;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #200000;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.tac-col-hdr-ct{font-family:'Courier New',monospace;font-size:9px;color:#441010;}
+/* Left col — incident list */
+.tac-inc-row{display:grid;grid-template-columns:1fr auto;align-items:center;padding:7px 0;border-bottom:1px solid #0f0000;gap:8px;}
+.tac-inc-row:last-child{border-bottom:none;}
+.tac-inc-name{font-family:'Courier New',monospace;font-size:10px;color:#cc8888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tac-inc-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.tac-inc-sev{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.tac-inc-count{font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#ff2020;min-width:24px;text-align:right;}
+.tac-inc-bar{height:2px;background:#1a0000;border-radius:1px;margin-top:3px;}
+.tac-inc-bar-fill{height:100%;border-radius:1px;transition:width 0.8s ease;}
+/* Center col — charts */
+.tac-chart-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;}
+.tac-chart-title{font-family:'Courier New',monospace;font-size:8px;color:#441010;letter-spacing:2px;text-transform:uppercase;}
+.tac-canvas-wrap{position:relative;flex:1;min-height:0;}
+.tac-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;}
+/* Right col — live feed */
+.tac-feed-item{display:grid;grid-template-columns:8px 1fr auto;gap:7px;align-items:start;padding:7px 0;border-bottom:1px solid #0f0000;}
 .tac-feed-item:last-child{border-bottom:none;}
-.tac-feed-dot{width:6px;height:6px;border-radius:50%;margin-top:3px;flex-shrink:0;}
-.tac-feed-dot.High,.tac-feed-dot.Critical{background:#ff2020;}
-.tac-feed-dot.Medium{background:#ff6020;}
-.tac-feed-dot.Low,.tac-feed-dot.Informational{background:#444;}
-.tac-feed-title{font-family:'Courier New',monospace;font-size:10px;color:#aaa;line-height:1.4;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.tac-feed-time{font-family:'Courier New',monospace;font-size:9px;color:#444;white-space:nowrap;}
-.tac-feed-sev{font-family:'Courier New',monospace;font-size:8px;color:#ff2020;letter-spacing:1px;text-transform:uppercase;}
-.tac-footer{background:#0d0000;border-top:1px solid #1a0000;padding:6px 16px;display:flex;justify-content:space-between;align-items:center;font-family:'Courier New',monospace;font-size:9px;color:#333;letter-spacing:1px;position:relative;z-index:1;}
-.tac-footer-status{display:flex;align-items:center;gap:6px;color:#ff2020;}
-.tac-footer-status::before{content:'';width:5px;height:5px;background:#ff2020;border-radius:50%;display:inline-block;animation:tacblink 2s infinite;}
+.tac-feed-dot{width:7px;height:7px;border-radius:50%;margin-top:2px;flex-shrink:0;}
+.tac-feed-name{font-family:'Courier New',monospace;font-size:10px;color:#bb7777;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.tac-feed-meta{text-align:right;flex-shrink:0;}
+.tac-feed-time{font-family:'Courier New',monospace;font-size:9px;color:#330000;display:block;}
+.tac-feed-sev{font-family:'Courier New',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;display:block;margin-top:2px;}
+/* Footer */
+.tac-footer{background:#0a0000;border-top:1px solid #1a0000;padding:6px 18px;display:flex;justify-content:space-between;align-items:center;font-family:'Courier New',monospace;font-size:9px;letter-spacing:1px;flex-shrink:0;}
+.tac-footer-left{display:flex;align-items:center;gap:8px;color:#ff2020;}
+.tac-footer-left::before{content:'';width:6px;height:6px;background:#ff2020;border-radius:50%;animation:tacblink 2s infinite;box-shadow:0 0 4px #ff2020;}
+.tac-footer-right{color:#2a0000;}
 .hi-row{display:grid;grid-template-columns:10px 1fr auto auto;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-family:var(--fm);font-size:11px;color:var(--txt);}
 .hi-row:last-child{border-bottom:none;}
 .hi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -372,52 +379,60 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   </div>
 
   <div id="tacticalOps">
+    <!-- TICKER -->
     <div class="tac-ticker">
-      <div class="tac-ticker-label"><span class="tac-ticker-dot"></span>LIVE THREAT FEED</div>
-      <div class="tac-ticker-scroll"><div class="tac-ticker-inner" id="tacTickerInner">
-        <span class="tac-ticker-item">LOADING THREAT INTELLIGENCE...</span>
-        <span class="tac-ticker-item">LOADING THREAT INTELLIGENCE...</span>
-      </div></div>
+      <div class="tac-ticker-label"><span class="tac-ticker-dot"></span>LIVE ALERT FEED</div>
+      <div class="tac-ticker-scroll">
+        <div class="tac-ticker-inner" id="tacTickerInner">
+          <span class="tac-ticker-item">INITIALIZING THREAT INTELLIGENCE...</span>
+          <span class="tac-ticker-item">INITIALIZING THREAT INTELLIGENCE...</span>
+        </div>
+      </div>
     </div>
+    <!-- KPI STRIP -->
+    <div class="tac-kpi-strip">
+      <div class="tac-kpi"><div class="tac-kpi-val" id="tacK0">—</div><div class="tac-kpi-lbl">ACTIVE INCIDENTS</div></div>
+      <div class="tac-kpi"><div class="tac-kpi-val kv-or" id="tacK1">—</div><div class="tac-kpi-lbl">ALERTS 7D</div></div>
+      <div class="tac-kpi"><div class="tac-kpi-val kv-yw" id="tacK2">—</div><div class="tac-kpi-lbl">SIGN-IN FAILURES</div></div>
+      <div class="tac-kpi"><div class="tac-kpi-val kv-cy" id="tacK3">—</div><div class="tac-kpi-lbl">UEBA ANOMALIES</div></div>
+      <div class="tac-kpi"><div class="tac-kpi-val kv-or" id="tacK4">—</div><div class="tac-kpi-lbl">EMAILS BLOCKED</div></div>
+      <div class="tac-kpi"><div class="tac-kpi-val kv-cy" id="tacK5">—</div><div class="tac-kpi-lbl">DNS BLOCKED 7D</div></div>
+    </div>
+    <!-- 3-COLUMN BODY -->
     <div class="tac-body">
+      <!-- LEFT: TOP INCIDENTS -->
       <div class="tac-col">
-        <div class="tac-col-title">TOP INCIDENTS</div>
-        <div id="tacThreatList"><div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">LOADING...</div></div>
+        <div class="tac-col-hdr">TOP ACTIVE INCIDENTS<span class="tac-col-hdr-ct" id="tacIncTotal"></span></div>
+        <div id="tacIncList" style="overflow-y:auto;flex:1;scrollbar-width:none;"></div>
       </div>
-      <div class="tac-center">
-        <div class="tac-col-title" style="justify-content:center">CYBERDEFENSE STATUS</div>
-        <div class="tac-big-metric">
-          <div class="tac-big-num" id="tacBigNum">—</div>
-          <div class="tac-big-lbl">ACTIVE INCIDENTS</div>
+      <!-- CENTER: VISUALIZATIONS -->
+      <div class="tac-col">
+        <div class="tac-col-hdr">THREAT DISTRIBUTION</div>
+        <div class="tac-chart-wrap">
+          <div class="tac-chart-title">INCIDENTS BY SEVERITY (7D)</div>
+          <div class="tac-canvas-wrap" style="max-height:180px">
+            <canvas id="tacDonutChart"></canvas>
+          </div>
+          <div class="tac-chart-title" style="margin-top:4px">ALERT VOLUME — LAST 7 DAYS</div>
+          <div class="tac-canvas-wrap" style="flex:1;min-height:80px">
+            <canvas id="tacBarChart"></canvas>
+          </div>
         </div>
-        <div class="tac-metrics-grid">
-          <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM0">…</div><div class="tac-metric-box-lbl">ALERTS 7D</div></div>
-          <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM1">…</div><div class="tac-metric-box-lbl">SIGN-IN FAILS</div></div>
-          <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM2">…</div><div class="tac-metric-box-lbl">UEBA ANOMALIES</div></div>
-          <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM3">…</div><div class="tac-metric-box-lbl">DNS BLOCKED</div></div>
-          <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM4">…</div><div class="tac-metric-box-lbl">EMAILS BLOCKED</div></div>
-          <div class="tac-metric-box"><div class="tac-metric-box-val ldg" id="tacM5">…</div><div class="tac-metric-box-lbl">THREATS DELIVERED</div></div>
-        </div>
       </div>
+      <!-- RIGHT: LIVE FEED -->
       <div class="tac-col">
-        <div class="tac-col-title">EMAIL &amp; DNS THREATS</div>
-        <div class="tac-col-title" style="font-size:8px;color:#662200;margin-top:-6px;margin-bottom:8px;border:none;padding:0">▶ PROOFPOINT BLOCKED (24H)</div>
-        <div id="tacEmailFeed"><div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">LOADING...</div></div>
-        <div class="tac-col-title" style="margin-top:10px;font-size:8px">▶ TOP DNS BLOCKED DOMAINS</div>
-        <div id="tacDnsFeed"><div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:4px 0">LOADING...</div></div>
-      </div>
-      <div class="tac-col">
-        <div class="tac-col-title">LIVE INCIDENT FEED</div>
-        <div id="tacLiveFeed"><div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">LOADING...</div></div>
+        <div class="tac-col-hdr">LIVE INCIDENT FEED<span class="tac-col-hdr-ct" id="tacFeedStamp"></span></div>
+        <div id="tacLiveFeed" style="overflow-y:auto;flex:1;scrollbar-width:none;"></div>
       </div>
     </div>
+    <!-- FOOTER -->
     <div class="tac-footer">
-      <span class="tac-footer-status">MONITORING ACTIVE</span>
-      <span>TENANT: AMERICAN BUREAU OF SHIPPING &nbsp;|&nbsp; WORKSPACE: LAW-SECURITY-PROD &nbsp;|&nbsp; <span id="tacLastUpdate">UPDATING...</span></span>
+      <div class="tac-footer-left">MONITORING ACTIVE</div>
+      <div class="tac-footer-right">TENANT: AMERICAN BUREAU OF SHIPPING &nbsp;·&nbsp; WORKSPACE: LAW-SECURITY-PROD &nbsp;·&nbsp; <span id="tacLastUpdate">INITIALIZING</span></div>
     </div>
   </div>
 </div>
-<div id="pbanner" style="display:none">
+d="pbanner" style="display:none">
   <span class="ppill">ABS Cyber Security</span>
 </div>
 
@@ -622,132 +637,154 @@ async function loadHomeKPIs(){
 
 
 async function loadTacticalOps(){
-  const $ = id => document.getElementById(id);
-  const fmt = n => Number(n||0).toLocaleString();
-  const safe = async fn => { try{ return await fn(); }catch(e){ console.warn('TacOps query failed:',e?.message||e); return null; } };
+  const $=id=>document.getElementById(id);
+  const fmt=n=>Number(n||0).toLocaleString();
+  const safe=async fn=>{try{return await fn();}catch(e){console.warn('TacOps:',e?.message);return null;}};
 
-  // Fire all queries in parallel
-  const [inc, threats, feed, alerts, emails, dns, m0, m1, m2, m3, m4, m5] = await Promise.allSettled([
+  // ── All queries in parallel ──────────────────────────────────
+  const [rInc,rThreats,rFeed,rAlerts,rSevDist,rAlertTrend,rM1,rM2,rM3,rM4,rM5]=await Promise.allSettled([
     safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count()`)),
     safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count() by Title,Severity|order by Count desc|take 10`)),
-    safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|project Title,Severity,TimeGenerated|order by TimeGenerated desc|take 14`)),
-    safe(()=>runLA(`SecurityAlert|where TimeGenerated>=ago(24h)|summarize Count=count() by AlertName,ProductName|order by Count desc|take 20`)),
-    safe(()=>runLA(`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(24h)|extend T=todynamic(threatsInfoMap_s)|mv-expand Threat=T|extend C=tostring(Threat.classification)|summarize Count=count() by sender_s,C|order by Count desc|take 8`)),
-    safe(()=>runLA(`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(24h)|where Action_s=='Blocked'|summarize Count=count() by Domain_s|order by Count desc|take 8`)),
+    safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|project Title,Severity,TimeGenerated|order by TimeGenerated desc|take 16`)),
+    safe(()=>runLA(`SecurityAlert|where TimeGenerated>=ago(24h)|summarize Count=count() by AlertName,ProductName|order by Count desc|take 24`)),
+    safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|summarize Count=count() by Severity`)),
+    safe(()=>runLA(`SecurityAlert|where TimeGenerated>=ago(7d)|summarize Count=count() by bin(TimeGenerated,1d)|order by TimeGenerated asc`)),
     safe(()=>runLA(`SecurityAlert|where TimeGenerated>=ago(7d)|summarize Count=count()`)),
     safe(()=>runLA(`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`)),
     safe(()=>runLA(`BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Count=count()`)),
-    safe(()=>runLA(`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=count()`)),
     safe(()=>runLA(`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`)),
-    safe(()=>runLA(`ProofPointTAPMessagesDelivered_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Count=count()`)),
+    safe(()=>runLA(`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=count()`)),
   ]);
+  const g=r=>r.status==='fulfilled'?r.value:null;
 
-  const get = r => r.status==='fulfilled' ? r.value : null;
-
-  // Replace all still-loading indicators with 0 after a safety timeout
+  // Safety fallback — clear spinners after 8s
   setTimeout(()=>{
-    ['tacBigNum','tacM0','tacM1','tacM2','tacM3','tacM4','tacM5'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el&&el.classList.contains('ldg')){el.textContent='—';el.classList.remove('ldg');}
+    ['tacK0','tacK1','tacK2','tacK3','tacK4','tacK5'].forEach(id=>{
+      const el=$(id);if(el&&el.textContent==='—')el.textContent='0';
     });
-    ['tacThreatList','tacLiveFeed','tacEmailFeed','tacDnsFeed'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el&&el.querySelector&&el.innerHTML.includes('LOADING')){el.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">NO DATA</div>';}
-    });
-  }, 8000);
+  },8000);
 
-  // Big active incident count
-  const incData = get(inc);
-  const bigEl = $('tacBigNum');
-  if(bigEl){ bigEl.textContent = fmt(incData?.[0]?.Count); bigEl.classList.remove('ldg'); }
+  // ── KPI Strip ───────────────────────────────────────────────
+  const incCount=Number(g(rInc)?.[0]?.Count||0);
+  [
+    ['tacK0',incCount],
+    ['tacK1',Number(g(rM1)?.[0]?.Count||0)],
+    ['tacK2',Number(g(rM2)?.[0]?.Count||0)],
+    ['tacK3',Number(g(rM3)?.[0]?.Count||0)],
+    ['tacK4',Number(g(rM4)?.[0]?.Count||0)],
+    ['tacK5',Number(g(rM5)?.[0]?.Count||0)],
+  ].forEach(([id,val])=>{const el=$(id);if(el)el.textContent=fmt(val);});
 
-  // 6 metric boxes
-  [m0,m1,m2,m3,m4,m5].forEach((r,i)=>{
-    const el=$('tacM'+i);
-    if(el){ el.textContent=fmt(get(r)?.[0]?.Count); el.classList.remove('ldg'); }
-  });
-
-  // Top incidents list
-  const threatData = get(threats);
-  const tl = $('tacThreatList');
-  if(tl){
-    if(threatData&&threatData.length){
-      const max=Math.max(...threatData.map(r=>Number(r.Count)||1));
-      tl.innerHTML=threatData.map(r=>{
-        const pct=Math.round((Number(r.Count)/max)*100);
-        const sColor={'High':'#ff2020','Critical':'#ff0000','Medium':'#ff6020','Low':'#444'}[r.Severity]||'#444';
-        return `<div class="tac-threat-row">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-              <div class="tac-threat-name">${r.Title||'Unknown'}</div>
-              <div class="tac-threat-val">${r.Count}</div>
-            </div>
-            <div class="tac-threat-bar"><div class="tac-threat-bar-fill" style="width:${pct}%;background:${sColor}"></div></div>
-          </div>
-        </div>`;
-      }).join('');
-    } else { tl.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">NO ACTIVE INCIDENTS</div>'; }
-  }
-
-  // Live incident feed
-  const feedData = get(feed);
-  const fl = $('tacLiveFeed');
-  if(fl){
-    if(feedData&&feedData.length){
-      fl.innerHTML=feedData.map(r=>{
-        const mins=Math.round((Date.now()-new Date(r.TimeGenerated))/60000);
-        const ago=mins<60?mins+'m':mins<1440?Math.round(mins/60)+'h':Math.round(mins/1440)+'d';
-        const sColor={'High':'#ff2020','Critical':'#ff0000','Medium':'#ff6020','Low':'#333','Informational':'#222'}[r.Severity]||'#333';
-        return `<div class="tac-feed-item">
-          <div class="tac-feed-dot" style="background:${sColor}"></div>
-          <div style="min-width:0">
-            <div class="tac-feed-title">${r.Title||'Untitled'}</div>
-            <div class="tac-feed-sev" style="color:${sColor}">${(r.Severity||'').toUpperCase()}</div>
-          </div>
-          <div class="tac-feed-time">${ago}</div>
-        </div>`;
-      }).join('');
-    } else { fl.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">NO ACTIVE INCIDENTS</div>'; }
-  }
-
-  // Ticker
-  const alertData = get(alerts);
-  const ticker = $('tacTickerInner');
-  if(ticker&&alertData&&alertData.length){
+  // ── Ticker ───────────────────────────────────────────────────
+  const alertData=g(rAlerts);
+  const ticker=$('tacTickerInner');
+  if(ticker&&alertData?.length){
     const items=alertData.map(a=>`<span class="tac-ticker-item"><span>${a.ProductName||'SENTINEL'}</span>&nbsp;▸&nbsp;${a.AlertName}&nbsp;[${a.Count}]</span>`).join('');
     ticker.innerHTML=items+items;
-  } else if(ticker){ ticker.innerHTML='<span class="tac-ticker-item">NO ALERTS IN LAST 24H</span>'; }
-
-  // Email feed
-  const emailData = get(emails);
-  const ef = $('tacEmailFeed');
-  if(ef){
-    if(emailData&&emailData.length){
-      ef.innerHTML=emailData.map(r=>`<div class="tac-threat-row">
-        <div class="tac-threat-name">${(r.sender_s||'unknown').replace(/['"]/g,'').substring(0,26)}</div>
-        <div style="display:flex;align-items:center;gap:5px">
-          <span style="font-family:Courier New,monospace;font-size:8px;color:#882200;text-transform:uppercase">${r.C||'?'}</span>
-          <span class="tac-threat-val">${r.Count}</span>
-        </div>
-      </div>`).join('');
-    } else { ef.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:4px 0">NO DATA</div>'; }
   }
 
-  // DNS feed
-  const dnsData = get(dns);
-  const df = $('tacDnsFeed');
-  if(df){
-    if(dnsData&&dnsData.length){
-      df.innerHTML=dnsData.map(r=>`<div class="tac-threat-row">
-        <div class="tac-threat-name">${(r.Domain_s||'unknown').substring(0,26)}</div>
-        <span class="tac-threat-val">${r.Count}</span>
-      </div>`).join('');
-    } else { df.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:4px 0">NO DATA</div>'; }
+  // ── Left: Incident List ──────────────────────────────────────
+  const threats=g(rThreats);
+  const tl=$('tacIncList');
+  const sevColor={Critical:'#ff0000',High:'#ff2020',Medium:'#ff6020',Low:'#333',Informational:'#222'};
+  if(tl){
+    const total=$('tacIncTotal');
+    if(total&&threats)total.textContent=threats.reduce((s,r)=>s+Number(r.Count||0),0)+' total';
+    if(threats?.length){
+      const max=Math.max(...threats.map(r=>Number(r.Count)||1));
+      tl.innerHTML=threats.map(r=>{
+        const pct=Math.round((Number(r.Count)/max)*100);
+        const c=sevColor[r.Severity]||'#444';
+        return `<div class="tac-inc-row">
+          <div>
+            <div class="tac-inc-name">${r.Title||'Unknown'}</div>
+            <div class="tac-inc-bar"><div class="tac-inc-bar-fill" style="width:${pct}%;background:${c}"></div></div>
+          </div>
+          <div class="tac-inc-right">
+            <div class="tac-inc-sev" style="background:${c}"></div>
+            <div class="tac-inc-count">${r.Count}</div>
+          </div>
+        </div>`;
+      }).join('');
+    } else { tl.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#2a0000;padding:12px 0;text-align:center">NO ACTIVE INCIDENTS</div>'; }
   }
 
-  // Last update
-  const lu = $('tacLastUpdate');
-  if(lu) lu.textContent='UPDATED: '+new Date().toLocaleTimeString('en-US',{hour12:false});
+  // ── Center: Charts ───────────────────────────────────────────
+  // Donut — severity distribution
+  const sevData=g(rSevDist);
+  const donutEl=$('tacDonutChart');
+  if(donutEl&&sevData?.length&&typeof Chart!=='undefined'){
+    if(window._tacDonut)window._tacDonut.destroy();
+    const sevOrder=['Critical','High','Medium','Low','Informational'];
+    const sevColors={'Critical':'#ff0000','High':'#ff2020','Medium':'#ff6020','Low':'#333','Informational':'#1a1a1a'};
+    const sorted=sevOrder.map(s=>sevData.find(r=>r.Severity===s)).filter(Boolean);
+    window._tacDonut=new Chart(donutEl,{
+      type:'doughnut',
+      data:{
+        labels:sorted.map(r=>r.Severity),
+        datasets:[{data:sorted.map(r=>r.Count),backgroundColor:sorted.map(r=>sevColors[r.Severity]||'#222'),borderColor:'#070707',borderWidth:3,hoverOffset:4}]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        cutout:'65%',
+        plugins:{
+          legend:{position:'right',labels:{color:'#662222',font:{family:'Courier New',size:9},boxWidth:10,padding:8}},
+          tooltip:{callbacks:{label:c=>' '+c.label+': '+c.raw}}
+        }
+      }
+    });
+  }
+
+  // Bar — alert volume trend
+  const trendData=g(rAlertTrend);
+  const barEl=$('tacBarChart');
+  if(barEl&&trendData?.length&&typeof Chart!=='undefined'){
+    if(window._tacBar)window._tacBar.destroy();
+    const labels=trendData.map(r=>{const d=new Date(r.TimeGenerated);return (d.getMonth()+1)+'/'+(d.getDate());});
+    const vals=trendData.map(r=>Number(r.Count||0));
+    window._tacBar=new Chart(barEl,{
+      type:'bar',
+      data:{
+        labels,
+        datasets:[{data:vals,backgroundColor:'rgba(255,32,32,0.35)',borderColor:'#ff2020',borderWidth:1,borderRadius:2}]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' alerts'}}},
+        scales:{
+          x:{ticks:{color:'#441010',font:{family:'Courier New',size:8}},grid:{color:'#0f0000'},border:{color:'#200000'}},
+          y:{ticks:{color:'#441010',font:{family:'Courier New',size:8}},grid:{color:'#0f0000'},border:{color:'#200000'}}
+        }
+      }
+    });
+  }
+
+  // ── Right: Live Feed ─────────────────────────────────────────
+  const feed=g(rFeed);
+  const fl=$('tacLiveFeed');
+  if(fl){
+    const stamp=$('tacFeedStamp');
+    if(stamp)stamp.textContent=new Date().toLocaleTimeString('en-US',{hour12:false});
+    if(feed?.length){
+      fl.innerHTML=feed.map(r=>{
+        const mins=Math.round((Date.now()-new Date(r.TimeGenerated))/60000);
+        const ago=mins<60?mins+'m ago':mins<1440?Math.round(mins/60)+'h ago':Math.round(mins/1440)+'d ago';
+        const c=sevColor[r.Severity]||'#333';
+        return `<div class="tac-feed-item">
+          <div class="tac-feed-dot" style="background:${c};box-shadow:0 0 4px ${c}"></div>
+          <div class="tac-feed-name">${r.Title||'Untitled'}</div>
+          <div class="tac-feed-meta">
+            <span class="tac-feed-time">${ago}</span>
+            <span class="tac-feed-sev" style="color:${c}">${(r.Severity||'').toUpperCase()}</span>
+          </div>
+        </div>`;
+      }).join('');
+    } else { fl.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#2a0000;padding:12px 0;text-align:center">NO ACTIVE INCIDENTS</div>'; }
+  }
+
+  // ── Footer timestamp ─────────────────────────────────────────
+  const lu=$('tacLastUpdate');
+  if(lu)lu.textContent='UPDATED '+new Date().toLocaleTimeString('en-US',{hour12:false});
 }
 
 setInterval(()=>{if(aDept==='home')loadTacticalOps();},300000);
