@@ -107,7 +107,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .dtab.act.arch{color:#ffa500;border-bottom-color:#ffa500;}
 .dtab.act.grc{color:#51cf66;border-bottom-color:#51cf66;}
 /* ── EXEC HOME ── */
-#homeView{display:none;flex-direction:column;gap:20px;padding:20px 24px;}
+#homeView{display:none;flex-direction:column;gap:16px;padding:16px 24px;min-height:calc(100vh - 52px);}
 .home-hdr{text-align:center;padding:8px 0;}
 .home-hdr h2{font-family:var(--fh);font-size:22px;color:var(--cy);letter-spacing:4px;text-transform:uppercase;margin:0 0 4px;}
 .home-hdr p{font-family:var(--fm);font-size:11px;color:var(--txt2);margin:0;}
@@ -137,7 +137,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .home-incidents{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
 .hi-title{font-family:var(--fm);font-size:10px;color:var(--txt2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
 /* ── TACTICAL OPS PANEL ─────────────────────────────────────── */
-#tacticalOps{background:#080808;border:1px solid #1a1a1a;border-radius:4px;overflow:hidden;position:relative;}
+#tacticalOps{background:#080808;border:1px solid #1a1a1a;border-radius:4px;overflow:hidden;position:relative;flex:1;display:flex;flex-direction:column;min-height:400px;}
 #tacticalOps::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,0,0,0.012) 2px,rgba(255,0,0,0.012) 4px);pointer-events:none;z-index:0;}
 .tac-ticker{background:#0d0000;border-bottom:1px solid #ff2020;padding:5px 16px;display:flex;align-items:center;gap:12px;overflow:hidden;position:relative;z-index:1;}
 .tac-ticker-label{font-family:'Courier New',monospace;font-size:10px;color:#ff2020;font-weight:700;letter-spacing:2px;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;}
@@ -149,8 +149,8 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 @keyframes tacscroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}  }
 .tac-ticker-item{font-family:'Courier New',monospace;font-size:10px;color:#cc0000;letter-spacing:0.5px;}
 .tac-ticker-item span{color:#ff4040;font-weight:700;}
-.tac-body{display:grid;grid-template-columns:220px 1fr 220px 240px;min-height:320px;position:relative;z-index:1;}
-.tac-col{padding:14px 16px;border-right:1px solid #1a1a1a;}
+.tac-body{display:grid;grid-template-columns:220px 1fr 220px 240px;flex:1;min-height:0;position:relative;z-index:1;overflow:hidden;}
+.tac-col{padding:14px 16px;border-right:1px solid #1a1a1a;overflow-y:auto;scrollbar-width:none;}
 .tac-col:last-child{border-right:none;}
 .tac-col-title{font-family:'Courier New',monospace;font-size:9px;color:#ff2020;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1a0000;display:flex;align-items:center;gap:6px;}
 .tac-col-title::before{content:'▶';font-size:7px;}
@@ -162,11 +162,11 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .tac-threat-bar{height:2px;background:#1a0000;margin-top:2px;width:100%;}
 .tac-threat-bar-fill{height:100%;background:#ff2020;transition:width 1s;}
 /* Center col */
-.tac-center{padding:14px 20px;}
+.tac-center{padding:14px 20px;overflow-y:auto;scrollbar-width:none;}
 .tac-big-metric{text-align:center;margin-bottom:16px;}
-.tac-big-num{font-family:'Courier New',monospace;font-size:52px;font-weight:700;color:#ff2020;line-height:1;text-shadow:0 0 20px rgba(255,32,32,0.4);}
+.tac-big-num{font-family:'Courier New',monospace;font-size:72px;font-weight:700;color:#ff2020;line-height:1;text-shadow:0 0 30px rgba(255,32,32,0.5);}
 .tac-big-lbl{font-family:'Courier New',monospace;font-size:9px;color:#666;letter-spacing:3px;text-transform:uppercase;margin-top:4px;}
-.tac-metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.tac-metrics-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;}
 .tac-metric-box{background:#0d0000;border:1px solid #1a0000;padding:8px 10px;border-radius:2px;}
 .tac-metric-box-val{font-family:'Courier New',monospace;font-size:20px;font-weight:700;color:#ff6040;}
 .tac-metric-box-lbl{font-family:'Courier New',monospace;font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
@@ -622,123 +622,120 @@ async function loadHomeKPIs(){
 
 
 async function loadTacticalOps(){
-  try{
-    // Big number - active incidents
-    const inc=await runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count()`);
-    const bigEl=document.getElementById('tacBigNum');
-    if(bigEl){bigEl.textContent=Number(inc?.[0]?.Count||0).toLocaleString();bigEl.classList.remove('ldg');}
+  const $ = id => document.getElementById(id);
+  const fmt = n => Number(n||0).toLocaleString();
+  const safe = async fn => { try{ return await fn(); }catch(e){ return null; } };
 
-    // 4 metrics
-    const metrics=[
-      {id:'tacM0',q:`SecurityAlert|where TimeGenerated>=ago(7d)|summarize Count=count()`,k:'Count'},
-      {id:'tacM1',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`,k:'Count'},
-      {id:'tacM2',q:`BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Count=count()`,k:'Count'},
-      {id:'tacM3',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=count()`,k:'Count'},
-      {id:'tacM4',q:`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`,k:'Count'},
-      {id:'tacM5',q:`ProofPointTAPMessagesDelivered_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Count=count()`,k:'Count'},
-    ];
-    metrics.forEach(async m=>{
-      try{
-        const r=await runLA(m.q);
-        const el=document.getElementById(m.id);
-        if(el){el.textContent=Number(r?.[0]?.[m.k]||0).toLocaleString();el.classList.remove('ldg');}
-      }catch{}
-    });
+  // Fire all queries in parallel
+  const [inc, threats, feed, alerts, emails, dns, m0, m1, m2, m3, m4, m5] = await Promise.allSettled([
+    safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count()`)),
+    safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count() by Title,Severity|order by Count desc|take 10`)),
+    safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|project Title,Severity,TimeGenerated|order by TimeGenerated desc|take 14`)),
+    safe(()=>runLA(`SecurityAlert|where TimeGenerated>=ago(24h)|summarize Count=count() by AlertName,ProductName|order by Count desc|take 20`)),
+    safe(()=>runLA(`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(24h)|extend T=todynamic(threatsInfoMap_s)|mv-expand Threat=T|extend C=tostring(Threat.classification)|summarize Count=count() by sender_s,C|order by Count desc|take 8`)),
+    safe(()=>runLA(`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(24h)|where Action_s=='Blocked'|summarize Count=count() by Domain_s|order by Count desc|take 8`)),
+    safe(()=>runLA(`SecurityAlert|where TimeGenerated>=ago(7d)|summarize Count=count()`)),
+    safe(()=>runLA(`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`)),
+    safe(()=>runLA(`BehaviorAnalytics|where TimeGenerated>=ago(7d)|where InvestigationPriority>=5|summarize Count=count()`)),
+    safe(()=>runLA(`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=count()`)),
+    safe(()=>runLA(`ProofPointTAPMessagesBlocked_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`)),
+    safe(()=>runLA(`ProofPointTAPMessagesDelivered_CL|where TimeGenerated>=ago(7d)|extend T=todynamic(threatsInfoMap_s)|where array_length(T)>0|summarize Count=count()`)),
+  ]);
 
-    // Threat list - top incidents by severity
-    const threats=await runLA(`SecurityIncident
-|where TimeGenerated>=ago(7d)
-|where Status=='Active'
-|summarize Count=count() by Title, Severity
-|order by Count desc|take 8`);
-    const tl=document.getElementById('tacThreatList');
-    if(tl&&threats){
-      const max=Math.max(...threats.map(r=>Number(r.Count)||1));
-      tl.innerHTML=threats.map(r=>{
+  const get = r => r.status==='fulfilled' ? r.value : null;
+
+  // Big active incident count
+  const incData = get(inc);
+  const bigEl = $('tacBigNum');
+  if(bigEl){ bigEl.textContent = fmt(incData?.[0]?.Count); bigEl.classList.remove('ldg'); }
+
+  // 6 metric boxes
+  [m0,m1,m2,m3,m4,m5].forEach((r,i)=>{
+    const el=$('tacM'+i);
+    if(el){ el.textContent=fmt(get(r)?.[0]?.Count); el.classList.remove('ldg'); }
+  });
+
+  // Top incidents list
+  const threatData = get(threats);
+  const tl = $('tacThreatList');
+  if(tl){
+    if(threatData&&threatData.length){
+      const max=Math.max(...threatData.map(r=>Number(r.Count)||1));
+      tl.innerHTML=threatData.map(r=>{
         const pct=Math.round((Number(r.Count)/max)*100);
+        const sColor={'High':'#ff2020','Critical':'#ff0000','Medium':'#ff6020','Low':'#444'}[r.Severity]||'#444';
         return `<div class="tac-threat-row">
-          <div>
-            <div class="tac-threat-name">${r.Title||'Unknown'}</div>
-            <div class="tac-threat-bar"><div class="tac-threat-bar-fill" style="width:${pct}%"></div></div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+              <div class="tac-threat-name">${r.Title||'Unknown'}</div>
+              <div class="tac-threat-val">${r.Count}</div>
+            </div>
+            <div class="tac-threat-bar"><div class="tac-threat-bar-fill" style="width:${pct}%;background:${sColor}"></div></div>
           </div>
-          <div class="tac-threat-val">${r.Count}</div>
         </div>`;
       }).join('');
-    }
+    } else { tl.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">NO ACTIVE INCIDENTS</div>'; }
+  }
 
-    // Live feed - latest incidents
-    const feed=await runLA(`SecurityIncident
-|where TimeGenerated>=ago(7d)
-|where Status=='Active'
-|project Title,Severity,TimeGenerated
-|order by TimeGenerated desc|take 12`);
-    const fl=document.getElementById('tacLiveFeed');
-    if(fl&&feed){
-      fl.innerHTML=feed.map(r=>{
+  // Live incident feed
+  const feedData = get(feed);
+  const fl = $('tacLiveFeed');
+  if(fl){
+    if(feedData&&feedData.length){
+      fl.innerHTML=feedData.map(r=>{
         const mins=Math.round((Date.now()-new Date(r.TimeGenerated))/60000);
-        const ago=mins<60?mins+'m ago':Math.round(mins/60)+'h ago';
+        const ago=mins<60?mins+'m':mins<1440?Math.round(mins/60)+'h':Math.round(mins/1440)+'d';
+        const sColor={'High':'#ff2020','Critical':'#ff0000','Medium':'#ff6020','Low':'#333','Informational':'#222'}[r.Severity]||'#333';
         return `<div class="tac-feed-item">
-          <div class="tac-feed-dot ${r.Severity||'Low'}"></div>
-          <div>
+          <div class="tac-feed-dot" style="background:${sColor}"></div>
+          <div style="min-width:0">
             <div class="tac-feed-title">${r.Title||'Untitled'}</div>
-            <div class="tac-feed-sev">${(r.Severity||'').toUpperCase()}</div>
+            <div class="tac-feed-sev" style="color:${sColor}">${(r.Severity||'').toUpperCase()}</div>
           </div>
           <div class="tac-feed-time">${ago}</div>
         </div>`;
       }).join('');
-    }
+    } else { fl.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:8px 0">NO ACTIVE INCIDENTS</div>'; }
+  }
 
-    // Ticker - top alert names
-    const alerts=await runLA(`SecurityAlert
-|where TimeGenerated>=ago(24h)
-|summarize Count=count() by AlertName,ProductName
-|order by Count desc|take 20`);
-    const ticker=document.getElementById('tacTickerInner');
-    if(ticker&&alerts&&alerts.length){
-      const items=alerts.map(a=>`<span class="tac-ticker-item"><span>${a.ProductName||'SENTINEL'}</span> &nbsp;▸&nbsp; ${a.AlertName} &nbsp;[${a.Count}]</span>`).join('');
-      ticker.innerHTML=items+items; // double for seamless loop
-    }
+  // Ticker
+  const alertData = get(alerts);
+  const ticker = $('tacTickerInner');
+  if(ticker&&alertData&&alertData.length){
+    const items=alertData.map(a=>`<span class="tac-ticker-item"><span>${a.ProductName||'SENTINEL'}</span>&nbsp;▸&nbsp;${a.AlertName}&nbsp;[${a.Count}]</span>`).join('');
+    ticker.innerHTML=items+items;
+  } else if(ticker){ ticker.innerHTML='<span class="tac-ticker-item">NO ALERTS IN LAST 24H</span>'; }
 
-    // Email threats feed
-    try{
-      const emails=await runLA(`ProofPointTAPMessagesBlocked_CL
-|where TimeGenerated>=ago(24h)
-|extend T=todynamic(threatsInfoMap_s)|mv-expand Threat=T
-|extend Classification=tostring(Threat.classification)
-|summarize Count=count() by sender_s, Classification
-|order by Count desc|take 6`);
-      const ef=document.getElementById('tacEmailFeed');
-      if(ef&&emails&&emails.length){
-        ef.innerHTML=emails.map(r=>`<div class="tac-threat-row">
-          <div class="tac-threat-name">${(r.sender_s||'unknown').replace(/['"]/g,'').substring(0,28)}</div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-family:Courier New,monospace;font-size:9px;color:#662200;text-transform:uppercase">${r.Classification||'unknown'}</span>
-            <span class="tac-threat-val">${r.Count}</span>
-          </div>
-        </div>`).join('');
-      }
-    }catch{}
-
-    // DNS threats feed
-    try{
-      const dns=await runLA(`Cisco_Umbrella_dns_CL
-|where TimeGenerated>=ago(24h)
-|where Action_s=='Blocked'
-|summarize Count=count() by Domain_s, tostring(Blocked_Categories_s)
-|order by Count desc|take 6`);
-      const df=document.getElementById('tacDnsFeed');
-      if(df&&dns&&dns.length){
-        df.innerHTML=dns.map(r=>`<div class="tac-threat-row">
-          <div class="tac-threat-name">${(r.Domain_s||'unknown').substring(0,28)}</div>
+  // Email feed
+  const emailData = get(emails);
+  const ef = $('tacEmailFeed');
+  if(ef){
+    if(emailData&&emailData.length){
+      ef.innerHTML=emailData.map(r=>`<div class="tac-threat-row">
+        <div class="tac-threat-name">${(r.sender_s||'unknown').replace(/['"]/g,'').substring(0,26)}</div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="font-family:Courier New,monospace;font-size:8px;color:#882200;text-transform:uppercase">${r.C||'?'}</span>
           <span class="tac-threat-val">${r.Count}</span>
-        </div>`).join('');
-      }
-    }catch{}
+        </div>
+      </div>`).join('');
+    } else { ef.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:4px 0">NO DATA</div>'; }
+  }
 
-    // Last update
-    const lu=document.getElementById('tacLastUpdate');
-    if(lu)lu.textContent='UPDATED: '+new Date().toLocaleTimeString('en-US',{hour12:false});
-  }catch(e){console.error('Tactical ops load error:',e);}
+  // DNS feed
+  const dnsData = get(dns);
+  const df = $('tacDnsFeed');
+  if(df){
+    if(dnsData&&dnsData.length){
+      df.innerHTML=dnsData.map(r=>`<div class="tac-threat-row">
+        <div class="tac-threat-name">${(r.Domain_s||'unknown').substring(0,26)}</div>
+        <span class="tac-threat-val">${r.Count}</span>
+      </div>`).join('');
+    } else { df.innerHTML='<div style="font-family:Courier New,monospace;font-size:10px;color:#333;padding:4px 0">NO DATA</div>'; }
+  }
+
+  // Last update
+  const lu = $('tacLastUpdate');
+  if(lu) lu.textContent='UPDATED: '+new Date().toLocaleTimeString('en-US',{hour12:false});
 }
 
 setInterval(()=>{if(aDept==='home')loadTacticalOps();},300000);
