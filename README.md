@@ -1,8 +1,8 @@
 # ABS CyberDefense · Security Dashboard
 
-A browser-based executive security dashboard for **American Bureau of Shipping**, built on top of Microsoft Sentinel, Microsoft Defender for Cloud, Microsoft Entra ID, Microsoft Defender for Endpoint, and several third-party data sources. All data is fetched live at runtime — nothing is stored or cached.
+A browser-based executive security dashboard for **American Bureau of Shipping**, built on top of Microsoft Sentinel, Microsoft Defender for Cloud, Microsoft Entra ID, Microsoft Defender for Endpoint, and several third-party data sources. All data is fetched live at runtime - nothing is stored or cached.
 
-> **Designed and Built by:** Eddie Devine, SIEM Engineer — ABS CyberDefense
+> **Designed and Built by:** Eddie Devine, SIEM Engineer - ABS CyberDefense
 
 ---
 
@@ -24,9 +24,9 @@ The dashboard is a single HTML file (`index.html`) with no build step, no backen
 
 ```
 Browser → MSAL (Azure AD Auth) → Azure REST APIs
-                                  ├── Log Analytics (KQL) — Sentinel, MDE, Entra logs
-                                  ├── Azure Resource Graph — Posture, RBAC, Policy
-                                  └── Microsoft 365 Defender API — MDE device data
+                                  ├── Log Analytics (KQL) - Sentinel, MDE, Entra logs
+                                  ├── Azure Resource Graph - Posture, RBAC, Policy
+                                  └── Microsoft 365 Defender API - MDE device data
 ```
 
 **No data leaves the browser.** Queries run client-side against your tenant's APIs using your own delegated credentials.
@@ -158,15 +158,15 @@ GitHub Pages will serve it at `https://<org>.github.io/<repo>/`.
 
 ## Security & Privacy
 
-- Authentication is handled entirely by Microsoft MSAL — no credentials are stored anywhere in the app.
+- Authentication is handled entirely by Microsoft MSAL - no credentials are stored anywhere in the app.
 - All API calls are made directly from the browser to Microsoft APIs using your delegated token.
 - No data is sent to any third-party server.
 - No analytics, tracking, or logging of any kind.
-- Queries are read-only — the dashboard makes no write operations to any Azure resource.
+- Queries are read-only - the dashboard makes no write operations to any Azure resource.
 
 ---
 
 ## Author
 
-**Eddie Devine** — SIEM Engineer, ABS CyberDefense  
+**Eddie Devine** - SIEM Engineer, ABS CyberDefense  
 American Bureau of Shipping
