@@ -364,7 +364,7 @@ function renderChart(rows,cid,type){
 }
 
 // ── RENDER ────────────────────────────────────────────────────
-const URLC=new Set(['PortalLink','IAMLink','DefenderLink','MDELink','IncidentUrl','SentinelLink']);
+const URLC=new Set(['PortalLink','IAMLink','DefenderLink','MDELink','IncidentUrl','SentinelLink','EntraLink']);
 function renderRes(rows,cid,viz){
   if(viz==='tiles')return renderTiles(rows,cid);
   if(viz==='timechart')return renderChart(rows,cid,'line');
@@ -585,7 +585,8 @@ d5:[
     RoleId has '7f951dda-4ed3-4680-a7ca-43fe172d538d','AcrPull',
     tostring(split(RoleId,'/')[-1]))
 | extend IAMLink = strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',subscriptionId,'/users')
-| project RoleName, PrincipalType, ScopeLevel, Scope, IAMLink, SubscriptionId=subscriptionId
+| extend EntraLink = 'https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/AllUsers/menuId/'
+| project RoleName, PrincipalType, ScopeLevel, Scope, IAMLink, EntraLink, SubscriptionId=subscriptionId
 | order by RoleName asc, PrincipalType asc | take 1000`},
   {label:'Managed Identities',type:'arg',query:`Resources
 | where type == 'microsoft.managedidentity/userassignedidentities'
@@ -692,7 +693,7 @@ d5:[
 | extend RiskLevel=tostring(RiskLevelDuringSignIn)
 | summarize FailureCount=count() by UserPrincipalName, AppDisplayName, FailureReason, RiskLevel, IPAddress
 | where FailureCount > 10
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/'
 | order by FailureCount desc | take 500`},
   {label:'Incident MTTD/MTTR',type:'la',query:`SecurityIncident
 | where TimeGenerated >= ago(30d)
@@ -767,7 +768,7 @@ az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscrip
   {label:'UEBA Anomalies',type:'la',query:`BehaviorAnalytics
 | where TimeGenerated {TimeRange}
 | where InvestigationPriority >= 5
-| extend PortalLink=strcat('https://entra.microsoft.com/#view/Microsoft_AAD_IAM/UserDetailsMenuBlade/~/SignIns/userId/',UserPrincipalName)
+| extend PortalLink=strcat('https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SecurityMenuBlade/~/RiskyUsers/menuId/RiskyUsers/fromNav/',UserPrincipalName)
 | project TimeGenerated, UserName, UserPrincipalName, ActivityType, ActionType,
     SourceIPAddress, SourceIPLocation, InvestigationPriority, PortalLink,
     UsersInsights, DevicesInsights, ActivityInsights
@@ -801,7 +802,7 @@ az role assignment delete --assignee &lt;principalId&gt; --role Owner --subscrip
     FailureCount = countif(ResultType != 0)
     by ServicePrincipalName, ServicePrincipalId, AppId
 | extend FailurePct = round(todouble(FailureCount)/SignInCount*100,1)
-| extend PortalLink=strcat('https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ManagedAppMenuBlade/~/SignIns/objectId/',ServicePrincipalId)
+| extend PortalLink=strcat('https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/',ServicePrincipalId)
 | order by FailureCount desc
 | take 200`},
 ],
@@ -854,7 +855,8 @@ d1:[
 | extend RoleId=tolower(tostring(properties.roleDefinitionId))
 | extend Scope=tostring(properties.scope)
 | extend IAMLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',subscriptionId,'/users')
-| project PrincipalType,RoleId,Scope,IAMLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
+| extend EntraLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/AllUsers/menuId/'
+| project PrincipalType,RoleId,Scope,IAMLink,EntraLink,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId
 | order by PrincipalType asc | take 1000`},
   {label:'Policy Compliance',type:'arg',query:`PolicyResources
 | where type=~'microsoft.policyinsights/policystates'
@@ -880,13 +882,13 @@ d1:[
 | where ResultType!='0'
 | extend FailureReason=tostring(Status.failureReason)
 | summarize FailureCount=count(),UniqueIPs=dcount(IPAddress) by UserPrincipalName,AppDisplayName,FailureReason,ErrorCode=ResultType
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/'
 | order by FailureCount desc | take 500`},
   {label:'Legacy Auth',type:'la',query:`SigninLogs
 | where TimeGenerated {TimeRange}
 | where ClientAppUsed in ('Exchange ActiveSync','Exchange Online PowerShell','Exchange Web Services','IMAP4','MAPI Over HTTP','Offline Address Book','Other clients','POP3','Reporting Web Services','Authenticated SMTP','Autodiscover')
 | where ResultType=='0'
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/'
 | summarize Count=count() by bin(TimeGenerated,1d),ClientAppUsed
 | order by TimeGenerated asc`},
   {label:'Geo Distribution',type:'la',query:`SigninLogs
@@ -894,7 +896,7 @@ d1:[
 | extend Country=tostring(LocationDetails.countryOrRegion)
 | extend City=tostring(LocationDetails.city)
 | extend IsSuccess=ResultType=='0'
-| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SignInEventsV3'
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/'
 | summarize TotalLogins=count(),Successes=countif(IsSuccess),Failures=countif(not(IsSuccess)),UniqueUsers=dcount(UserPrincipalName) by Country,City
 | order by TotalLogins desc | take 100`},
   {label:'Shadow Subscriptions',type:'arg',query:`ResourceContainers
