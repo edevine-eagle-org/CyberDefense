@@ -610,21 +610,38 @@ function erSt(m){return`<div class="sbox" style="color:var(--red)"><div class="s
 
 // ── PANEL ENGINE ──────────────────────────────────────────────
 const PC={};let aDash='d5';
-async function execP(def,cid,force){
+async function execP(def,cid,force,_isRetry){
   if(!acct)return;
   if(!force&&PC[cid]){renderRes(PC[cid],cid,def.viz);return;}
   dChart(cid);
   document.getElementById(cid).innerHTML=ldSt(def.type==='arg'?'Azure Resource Graph':'Log Analytics');
+
+  // Auto-retry once after 5s if still no result
+  let autoRetried=false;
+  const autoRetryTimer=!_isRetry?setTimeout(()=>{
+    autoRetried=true;
+    execP(def,cid,true,true);
+  },5000):null;
+
   const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Query timed out after 90s — the data source may be slow or unavailable.')),90000));
   try{
     const rows=await Promise.race([
       def.type==='arg'?runARG(def.query):runLA(def.query),
       timeout
     ]);
+    clearTimeout(autoRetryTimer);
+    if(autoRetried)return; // retry already took over, let it render
     PC[cid]=rows;renderRes(rows,cid,def.viz);
   }catch(e){
-    const el=document.getElementById(cid);
-    if(el)el.innerHTML=`${erSt(e.message)}<div style="text-align:center;margin-top:8px"><button class="tbbtn" onclick="delete PC['${cid}'];execP(PANELS['${aDash}'][${PANELS[aDash]?.indexOf(def)}],'${cid}',true)" style="font-size:11px">↺ Retry</button></div>`;
+    clearTimeout(autoRetryTimer);
+    if(autoRetried)return; // retry already took over
+    if(!_isRetry){
+      // First failure — auto retry immediately once more
+      execP(def,cid,true,true);
+    } else {
+      const el=document.getElementById(cid);
+      if(el)el.innerHTML=`${erSt(e.message)}<div style="text-align:center;margin-top:8px"><button class="tbbtn" onclick="delete PC['${cid}'];execP(PANELS['${aDash}'][${PANELS[aDash]?.indexOf(def)}],'${cid}',true)" style="font-size:11px">↺ Retry</button></div>`;
+    }
   }
 }
 function refreshAct(){if(aDept==='home'){loadHomeKPIs();return;}
