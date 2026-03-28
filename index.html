@@ -310,6 +310,11 @@ function copyDashLink(){
     setTimeout(()=>{btn.textContent=orig;btn.style.color='';btn.style.borderColor='';},2000);
   });
 }
+function signOut(){
+  if(mApp&&acct){
+    mApp.logoutRedirect({account:acct,postLogoutRedirectUri:location.origin+location.pathname});
+  }
+}
 function gtr(){return document.getElementById('trSel').value;}
 function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 </script>
@@ -318,8 +323,6 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
   <div class="logo"></div>
   <div class="vsep"></div>
   <div class="tmeta"><b>Tenant:</b> American Bureau of Shipping &nbsp;|&nbsp; <b>Designed and Built by:</b> Eddie Devine, SIEM Engineer - ABS CyberDefense</div>
-  <div class="vsep"></div>
-  <button class="tbbtn" id="copyLinkBtn" onclick="copyDashLink()" title="Copy dashboard link">🔗 edevine-eagle-org.github.io/CyberDefense</button>
   <div class="tright">
     <select id="trSel" onchange="onTRChange()">
       <option value="1d">Last 24h</option>
@@ -344,6 +347,7 @@ function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
     </div>
     <button class="tbbtn" onclick="refreshAct()">↺ Refresh</button>
     <div id="ubadge"><div class="pdot"></div><span id="uemail"></span></div>
+    <button id="signOutBtn" onclick="signOut()" style="display:none;background:transparent;border:1px solid var(--border2);color:var(--txt2);font-family:var(--fm);font-size:11px;padding:5px 11px;border-radius:var(--r);cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--txt2)'">⏻ Sign Out</button>
     <button id="loginBtn" onclick="signIn()">Sign In</button>
   </div>
 </div>
@@ -2739,6 +2743,7 @@ function onAuth(){
   document.getElementById('lscr').style.display='none';
   document.getElementById('ubadge').style.display='flex';
   document.getElementById('uemail').textContent=acct.username;
+  document.getElementById('signOutBtn').style.display='block';
   document.getElementById('deptBar').style.display='flex';
   document.getElementById('homeView').style.display='flex';
   document.getElementById('subFilterWrap').style.display='block';
