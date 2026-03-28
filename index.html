@@ -615,10 +615,17 @@ async function execP(def,cid,force){
   if(!force&&PC[cid]){renderRes(PC[cid],cid,def.viz);return;}
   dChart(cid);
   document.getElementById(cid).innerHTML=ldSt(def.type==='arg'?'Azure Resource Graph':'Log Analytics');
+  const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Query timed out after 90s — the data source may be slow or unavailable.')),90000));
   try{
-    const rows=def.type==='arg'?await runARG(def.query):await runLA(def.query);
+    const rows=await Promise.race([
+      def.type==='arg'?runARG(def.query):runLA(def.query),
+      timeout
+    ]);
     PC[cid]=rows;renderRes(rows,cid,def.viz);
-  }catch(e){document.getElementById(cid).innerHTML=erSt(e.message);}
+  }catch(e){
+    const el=document.getElementById(cid);
+    if(el)el.innerHTML=`${erSt(e.message)}<div style="text-align:center;margin-top:8px"><button class="tbbtn" onclick="delete PC['${cid}'];execP(PANELS['${aDash}'][${PANELS[aDash]?.indexOf(def)}],'${cid}',true)" style="font-size:11px">↺ Retry</button></div>`;
+  }
 }
 function refreshAct(){if(aDept==='home'){loadHomeKPIs();return;}
   const ap=document.querySelector(`#ds-${aDash} .qpan.act`);
@@ -644,7 +651,8 @@ async function loadHomeKPIs(){
   ];
   defKPIs.forEach(async d=>{
     try{
-      const rows=d.t==='arg'?await runARG(d.q):await runLA(d.q);
+      const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),30000));
+      const rows=await Promise.race([d.t==='arg'?runARG(d.q):runLA(d.q),timeout]);
       const v=rows?.[0]?.[d.k];
       const el=document.getElementById(d.id);
       if(el){el.textContent=v!==undefined?Number(v).toLocaleString():'—';el.classList.remove('ldg');}
