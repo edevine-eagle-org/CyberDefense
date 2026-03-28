@@ -1473,10 +1473,10 @@ d1:[
   {label:'RBAC Summary',type:'arg',query:`AuthorizationResources
 | where type=='microsoft.authorization/roleassignments'
 | extend PrincipalType=tostring(properties.principalType)
-| extend Scope=tostring(properties.scope)
-| extend ScopeLevel=case(Scope matches regex '^/providers/Microsoft.Management','Management Group',Scope matches regex '^/subscriptions/[^/]+$','Subscription',Scope matches regex '^/subscriptions/[^/]+/resourceGroups/[^/]+$','Resource Group',Scope=='/','Tenant Root','Resource')
+| extend ScopeRaw=tostring(properties.scope)
+| extend ScopeLevel=case(ScopeRaw matches regex '^/providers/Microsoft.Management','Management Group',ScopeRaw matches regex '^/subscriptions/[^/]+$','Subscription',ScopeRaw matches regex '^/subscriptions/[^/]+/resourceGroups/[^/]+$','Resource Group',ScopeRaw=='/','Tenant Root','Resource')
 | summarize Count=count() by PrincipalType,ScopeLevel
-| extend PortalLink=strcat('https://portal.azure.com/#@eagle.onmicrosoft.com/resource/subscriptions/',tostring(split(Scope,'/')[2]),'/iam')
+| extend PortalLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/RolesManagementMenuBlade/~/AllRoles'
 | order by PrincipalType asc,ScopeLevel asc`},
   {label:'Privileged Roles',type:'arg',query:`AuthorizationResources
 | where type=='microsoft.authorization/roleassignments'
