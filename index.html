@@ -1251,7 +1251,8 @@ const KDEFS={
     {l:'5xx Error Spikes',c:'kc-bl',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title has 'DD - Web: HTTP 5xx Error Rate Spike'|summarize Count=count()`},k:'Count'},
     {l:'High Severity (30d)',c:'kc-rd',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title startswith 'DD'|where Severity=='High'|summarize Count=count()`},k:'Count'},
   ],
-    {l:'Critical Controls',c:'kc-rd',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`},k:'Count'},
+
+  grc_regulatory:[
     {l:'Secure Score (%)',c:'kc-cy',q:{t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`},k:'Score'},
     {l:'Policy Violations',c:'kc-rd',q:{t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Count=count()`},k:'Count'},
     {l:'Quick Wins',c:'kc-gn',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|where properties.metadata.implementationEffort=='Low'|summarize Count=count()`},k:'Count'},
