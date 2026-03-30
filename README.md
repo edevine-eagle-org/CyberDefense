@@ -167,6 +167,8 @@ Sign-in uses **MSAL redirect flow** (`loginRedirect`) rather than popups, which 
 
 This section addresses questions commonly raised by architects reviewing the repository.
 
+> **Access Control Note:** The dashboard is intended exclusively for use by ABS staff with a privileged `-C0` account. All `-C0` accounts are managed through **BeyondTrust Privileged Access Management (PAM)**. Passwords are automatically rotated every 24 hours and are never known to the user. No one can authenticate to this dashboard without first checking out a session through BeyondTrust. This is the primary runtime access control for the dashboard and represents a strong compensating control for the items discussed below.
+
 ### Why are the clientId, tenantId, and workspaceId visible in index.html?
 
 The dashboard is deployed via **GitHub Pages**, a static file host with no server-side runtime. There is no mechanism to inject secrets at request time - every file served must exist as a committed file in the repository. A separate `config.js` was evaluated and rejected because GitHub Pages would return a 404 for any gitignored file, breaking authentication on load.
@@ -180,19 +182,20 @@ Importantly, **these values are identifiers, not credentials.** They cannot be u
 
 This pattern is identical to how every publicly documented Microsoft identity sample is structured - the `clientId` and `tenantId` appear in the browser by design.
 
-### What is the actual risk if the repository becomes public?
+### What is the actual risk given the repository is public?
 
 An external party who found the `clientId` and `tenantId` could attempt to initiate an OAuth flow. They would be immediately blocked because:
 
 1. The login page would redirect back to the registered URI (`edevine-eagle-org.github.io`), not to them
 2. Even if they reached the login page, they would need a valid `@eagle.onmicrosoft.com` account to authenticate
-3. Even with a valid account, they would only see data they already have permission to see in Azure
+3. Even with a valid account, they would only see data they already have access to in Azure
+4. Any valid `@eagle.onmicrosoft.com` user attempting access via a `-C0` account would be required to authenticate through **BeyondTrust** first, with a password that rotates every 24 hours
 
-**The recommended response if the repo must go public** is to rotate the App Registration (generate a new `clientId`), not to attempt to remove the identifier from git history. Rotating takes minutes; history scrubbing is error-prone.
+**The recommended response if the App Registration must be rotated** is to generate a new `clientId` in Azure Portal and update `index.html`. Rotating takes minutes.
 
-### Why is the repo private if the credentials are safe?
+### Why is the repo currently public?
 
-Defense in depth. Keeping the repository private is a sensible additional control even though the identifiers alone are harmless. The current posture - private repo, public GitHub Pages endpoint - is intentional. The Pages URL being publicly accessible is required for users to reach the dashboard from outside the network.
+The repository is hosted under a personal organization (`edevine-eagle-org`) which does not have GitHub Enterprise licensing. GitHub Pages on private repositories requires Enterprise licensing. Making the repo private caused the Pages deployment to go offline, taking the dashboard down for all users. The repo was reverted to public to restore access. A planned migration to the ABS enterprise organization (`eagle-org`) will resolve this - see the migration section below.
 
 ---
 
@@ -215,20 +218,20 @@ The dashboard currently lives in a personal organization (`edevine-eagle-org`) a
 **Prerequisites**
 - Owner-level access on the `eagle-org` GitHub organization (confirmed: Eddie has this)
 - Access to update the Azure App Registration (`EA-SecurityDashboard-Prod-AppReg`) in Entra ID
-- Awareness that the dashboard URL will change — any bookmarks or links in internal documentation will need updating
+- Awareness that the dashboard URL will change - any bookmarks or links in internal documentation will need updating
 
-**Step 1 — Transfer the repository**
+**Step 1 - Transfer the repository**
 - Navigate to `https://github.com/edevine-eagle-org/CyberDefense/settings`
 - Danger Zone → **Transfer repository**
 - Enter `eagle-org` as the destination organization
 - Confirm by typing the repository name
 
-**Step 2 — Re-enable GitHub Pages on the new repo**
+**Step 2 - Re-enable GitHub Pages on the new repo**
 - Navigate to `https://github.com/eagle-org/CyberDefense/settings/pages`
 - Source → **Deploy from a branch** → branch: `main` / folder: `/ (root)` → Save
 - The new Pages URL will be: `https://eagle-org.github.io/CyberDefense/`
 
-**Step 3 — Update the App Registration redirect URI**
+**Step 3 - Update the App Registration redirect URI**
 - Azure Portal → App Registrations → `EA-SecurityDashboard-Prod-AppReg` → Authentication
 - Remove: `https://edevine-eagle-org.github.io/CyberDefense/`
 - Add: `https://eagle-org.github.io/CyberDefense/`
@@ -236,29 +239,28 @@ The dashboard currently lives in a personal organization (`edevine-eagle-org`) a
 
 > **Important:** The dashboard will show an MSAL authentication error for any user who tries to sign in between Step 1 and Step 3 completing. Do this during a low-traffic window and complete all three steps in sequence before announcing the new URL.
 
-**Step 4 — Update index.html**
+**Step 4 - Update index.html**
 - The `CFG` object and the `copyDashLink` function both contain the hardcoded Pages URL
 - Update both to `https://eagle-org.github.io/CyberDefense/`
 - Commit and push to the new repo location
 
-**Step 5 — Set repo visibility to private**
+**Step 5 - Set repo visibility to private**
 - Navigate to `https://github.com/eagle-org/CyberDefense/settings`
 - Danger Zone → **Change visibility** → **Make private**
-- GitHub Pages will remain live — private Pages is supported under Enterprise
+- GitHub Pages will remain live - private Pages is supported under Enterprise
 
-**Step 6 — Optionally restrict Pages visibility**
+**Step 6 - Optionally restrict Pages visibility**
 - The enterprise org supports publishing Pages privately (accessible only to org members)
 - Navigate to Settings → Pages → Visibility → **Private**
-- This would restrict the dashboard URL to authenticated GitHub Enterprise members only — evaluate whether this aligns with how your `-C0` users access it
+- This would restrict the dashboard URL to authenticated GitHub Enterprise members only - evaluate whether this aligns with how your `-C0` users access it
 
 ### Current Status
 
-The migration has not been completed. The repo remains at `edevine-eagle-org` as a public repository pending a planned migration window with architect involvement. The security posture is considered acceptable in the interim given BeyondTrust PAM controls on all `-C0` accounts used to access the dashboard.
+The migration has not been completed. The repo remains at `edevine-eagle-org` as a public repository pending a planned migration window with architect involvement. The security posture is considered acceptable in the interim given **BeyondTrust PAM controls** on all `-C0` accounts used to access the dashboard, with passwords rotating every 24 hours.
 
 ---
 
-
-No build step required. Just commit `index.html` to the `main` branch of a GitHub Pages-enabled repository.
+## Deployment Just commit `index.html` to the `main` branch of a GitHub Pages-enabled repository.
 
 ```bash
 git add index.html
