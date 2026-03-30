@@ -33,12 +33,28 @@ Browser → MSAL (Azure AD Auth) → Azure REST APIs
 
 ---
 
+## What's New
+
+### KPI Trend Deltas
+Every KPI card now displays a trend delta showing the change versus the equivalent previous period. For example, with the time picker set to **Last 7 days**, each KPI also queries the preceding 7-day window and computes the difference:
+
+- `▲ 14 (19%) vs prev` shown in **red** for metrics where an increase is bad (incidents, failures, violations)
+- `▼ 3,100 (19%) vs prev` shown in **green** for metrics where a decrease is good
+- `▲` shown in **green** for metrics where an increase is good (devices onboarded, MFA success rate)
+
+The comparison window shifts automatically when you change the time range selector. Azure Resource Graph KPIs (secure score, resource counts) show the current value only, as ARG is point-in-time rather than time-series.
+
+### Time Range Governs All KPI Queries
+The time range selector in the top-right corner now controls both panel data and KPI strip values consistently across all dashboards. Switching from **Last 7 days** to **Last 30 days** updates every number on the page - panel tables, charts, and KPI cards alike.
+
+---
+
 ## Dashboard Sections
 
-### 🏠 Home
+### Home
 Executive summary view with KPI cards for each department and a live tactical operations panel showing active incidents, alert volume, sign-in failures, UEBA anomalies, emails blocked, and DNS blocks.
 
-### 🛡️ CyberDefense
+### CyberDefense
 | Tab | Data Sources | What It Shows |
 |---|---|---|
 | Executive Summary | Sentinel, Proofpoint, Umbrella | Incident overview, identity risk, email/DNS threats, alert trend |
@@ -53,7 +69,7 @@ Executive summary view with KPI cards for each department and a live tactical op
 | OCI Threats | Oracle Cloud | Identity & sign-ins, user/group changes, Kubernetes, networking, compute |
 | GitHub / DevOps | GitHub Enterprise | Dependabot alerts, secret scanning, audit log, actions |
 
-### 🏗️ CyberArchitecture
+### CyberArchitecture
 | Tab | Data Sources | What It Shows |
 |---|---|---|
 | Executive Summary | ARG, Defender | Posture overview, infrastructure risk, compliance trend, secure score by subscription |
@@ -65,7 +81,7 @@ Executive summary view with KPI cards for each department and a live tactical op
 | OCI Architecture | Oracle Cloud | Kubernetes, integration activity, networking, compute, database, key management |
 | Workspace Health | Log Analytics | Workspace inventory, sentinel health, ingestion metrics |
 
-### 📋 CyberGRC
+### CyberGRC
 | Tab | Data Sources | What It Shows |
 |---|---|---|
 | Executive Summary | ARG, Policy | Governance overview, access risk, policy compliance by subscription, regulatory controls |
@@ -147,6 +163,39 @@ Sign-in uses **MSAL redirect flow** (`loginRedirect`) rather than popups, which 
 
 ---
 
+## Security Architecture & Credential Handling
+
+This section addresses questions commonly raised by architects reviewing the repository.
+
+### Why are the clientId, tenantId, and workspaceId visible in index.html?
+
+The dashboard is deployed via **GitHub Pages**, a static file host with no server-side runtime. There is no mechanism to inject secrets at request time - every file served must exist as a committed file in the repository. A separate `config.js` was evaluated and rejected because GitHub Pages would return a 404 for any gitignored file, breaking authentication on load.
+
+Importantly, **these values are identifiers, not credentials.** They cannot be used to access any data on their own. The actual security boundary is enforced entirely by Azure AD and the App Registration configuration:
+
+- The App Registration's **Redirect URIs** restrict which origins can complete an OAuth flow. Only `https://edevine-eagle-org.github.io/CyberDefense/` is registered. An attacker who obtained the `clientId` cannot authenticate from any other origin.
+- All queries execute under the **signed-in user's delegated permissions**. The dashboard has no service principal, no client secret, and no application-level access. It can only read data the authenticated user already has access to.
+- Queries are **read-only**. The dashboard makes no write operations to any Azure resource.
+- Token acquisition uses **PKCE** (Proof Key for Code Exchange), the current industry standard for public clients.
+
+This pattern is identical to how every publicly documented Microsoft identity sample is structured - the `clientId` and `tenantId` appear in the browser by design.
+
+### What is the actual risk if the repository becomes public?
+
+An external party who found the `clientId` and `tenantId` could attempt to initiate an OAuth flow. They would be immediately blocked because:
+
+1. The login page would redirect back to the registered URI (`edevine-eagle-org.github.io`), not to them
+2. Even if they reached the login page, they would need a valid `@eagle.onmicrosoft.com` account to authenticate
+3. Even with a valid account, they would only see data they already have permission to see in Azure
+
+**The recommended response if the repo must go public** is to rotate the App Registration (generate a new `clientId`), not to attempt to remove the identifier from git history. Rotating takes minutes; history scrubbing is error-prone.
+
+### Why is the repo private if the credentials are safe?
+
+Defense in depth. Keeping the repository private is a sensible additional control even though the identifiers alone are harmless. The current posture - private repo, public GitHub Pages endpoint - is intentional. The Pages URL being publicly accessible is required for users to reach the dashboard from outside the network.
+
+---
+
 ## Deployment
 
 No build step required. Just commit `index.html` to the `main` branch of a GitHub Pages-enabled repository.
@@ -182,7 +231,7 @@ GitHub Pages will serve it at `https://<org>.github.io/<repo>/`. Pages typically
 
 ## Technology Stack
 
-- **Auth:** [`@azure/msal-browser`](https://github.com/AzureAD/microsoft-authentication-library-for-js) v2.38.3 - redirect-based login/logout
+- **Auth:** [`@azure/msal-browser`](https://github.com/AzureAD/microsoft-authentication-library-for-js) v2.38.3 - PKCE redirect flow, no client secret
 - **Charts:** [`Chart.js`](https://www.chartjs.org/) v4.4.2
 - **Fonts:** IBM Plex Mono, IBM Plex Sans, Rajdhani (Google Fonts)
 - **No frameworks.** Pure HTML, CSS, and vanilla JavaScript.
@@ -196,6 +245,7 @@ GitHub Pages will serve it at `https://<org>.github.io/<repo>/`. Pages typically
 - No data is sent to any third-party server.
 - No analytics, tracking, or logging of any kind.
 - Queries are read-only - the dashboard makes no write operations to any Azure resource.
+- Token acquisition uses PKCE - no client secret exists or is needed.
 
 ---
 
@@ -203,4 +253,3 @@ GitHub Pages will serve it at `https://<org>.github.io/<repo>/`. Pages typically
 
 **Eddie Devine** - SIEM Engineer, ABS CyberDefense
 American Bureau of Shipping
-
