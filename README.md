@@ -196,7 +196,67 @@ Defense in depth. Keeping the repository private is a sensible additional contro
 
 ---
 
-## Deployment
+## Migrating to the ABS Enterprise Organization
+
+The dashboard currently lives in a personal organization (`edevine-eagle-org`) and is deployed as a **public** GitHub Pages site. This works and is secure, but the long-term recommended home is the **ABS enterprise GitHub organization** (`eagle-org`). This section documents what that migration requires and why it is worth doing.
+
+### Why Migrate
+
+| Benefit | Detail |
+|---|---|
+| **Private repo + live Pages** | Enterprise GitHub supports GitHub Pages on private repositories. The dashboard source code stays internal while the Pages URL remains accessible to your team. |
+| **Repo under ABS ownership** | The repo currently lives in a personal account. If Eddie's account is offboarded, the dashboard goes with it. Under `eagle-org` it is an organizational asset. |
+| **Access control via org teams** | Enterprise orgs support team-based repo permissions. Access can be governed through the same IAM processes as the rest of ABS tooling. |
+| **Removes public resource exposure** | Subscription IDs, workspace IDs, and resource paths currently visible in the public repo would no longer be publicly indexed. |
+| **Audit trail** | All commits and access would fall under the enterprise org's audit log, visible to GitHub Enterprise admins. |
+
+### What the Migration Requires
+
+**Prerequisites**
+- Owner-level access on the `eagle-org` GitHub organization (confirmed: Eddie has this)
+- Access to update the Azure App Registration (`EA-SecurityDashboard-Prod-AppReg`) in Entra ID
+- Awareness that the dashboard URL will change — any bookmarks or links in internal documentation will need updating
+
+**Step 1 — Transfer the repository**
+- Navigate to `https://github.com/edevine-eagle-org/CyberDefense/settings`
+- Danger Zone → **Transfer repository**
+- Enter `eagle-org` as the destination organization
+- Confirm by typing the repository name
+
+**Step 2 — Re-enable GitHub Pages on the new repo**
+- Navigate to `https://github.com/eagle-org/CyberDefense/settings/pages`
+- Source → **Deploy from a branch** → branch: `main` / folder: `/ (root)` → Save
+- The new Pages URL will be: `https://eagle-org.github.io/CyberDefense/`
+
+**Step 3 — Update the App Registration redirect URI**
+- Azure Portal → App Registrations → `EA-SecurityDashboard-Prod-AppReg` → Authentication
+- Remove: `https://edevine-eagle-org.github.io/CyberDefense/`
+- Add: `https://eagle-org.github.io/CyberDefense/`
+- Save
+
+> **Important:** The dashboard will show an MSAL authentication error for any user who tries to sign in between Step 1 and Step 3 completing. Do this during a low-traffic window and complete all three steps in sequence before announcing the new URL.
+
+**Step 4 — Update index.html**
+- The `CFG` object and the `copyDashLink` function both contain the hardcoded Pages URL
+- Update both to `https://eagle-org.github.io/CyberDefense/`
+- Commit and push to the new repo location
+
+**Step 5 — Set repo visibility to private**
+- Navigate to `https://github.com/eagle-org/CyberDefense/settings`
+- Danger Zone → **Change visibility** → **Make private**
+- GitHub Pages will remain live — private Pages is supported under Enterprise
+
+**Step 6 — Optionally restrict Pages visibility**
+- The enterprise org supports publishing Pages privately (accessible only to org members)
+- Navigate to Settings → Pages → Visibility → **Private**
+- This would restrict the dashboard URL to authenticated GitHub Enterprise members only — evaluate whether this aligns with how your `-C0` users access it
+
+### Current Status
+
+The migration has not been completed. The repo remains at `edevine-eagle-org` as a public repository pending a planned migration window with architect involvement. The security posture is considered acceptable in the interim given BeyondTrust PAM controls on all `-C0` accounts used to access the dashboard.
+
+---
+
 
 No build step required. Just commit `index.html` to the `main` branch of a GitHub Pages-enabled repository.
 
