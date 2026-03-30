@@ -702,7 +702,7 @@ async function loadTacticalOps(){
   const [rInc,rThreats,rFeed,rAlerts,rSevDist,rAlertTrend,rM1,rM2,rM3,rM4,rM5]=await Promise.allSettled([
     safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count()`)),
     safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count() by Title,Severity|order by Count desc|take 10`)),
-    safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|project Title,Severity,TimeGenerated|order by TimeGenerated desc|take 16`)),
+    safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|where Status=='Active'|summarize Count=count(),LastSeen=max(TimeGenerated),Severity=any(Severity) by Title|order by Count desc|take 16`)),
     safe(()=>runLA(`SecurityAlert|where TimeGenerated>=ago(24h)|summarize Count=count() by AlertName,ProductName|order by Count desc|take 24`)),
     safe(()=>runLA(`SecurityIncident|where TimeGenerated>=ago(7d)|summarize Count=count() by Severity`)),
     safe(()=>runLA(`SecurityAlert|where TimeGenerated>=ago(7d)|summarize Count=count() by bin(TimeGenerated,1d)|order by TimeGenerated asc`)),
@@ -824,12 +824,13 @@ async function loadTacticalOps(){
     if(stamp)stamp.textContent=new Date().toLocaleTimeString('en-US',{hour12:false});
     if(feed?.length){
       fl.innerHTML=feed.map(r=>{
-        const mins=Math.round((Date.now()-new Date(r.TimeGenerated))/60000);
+        const mins=Math.round((Date.now()-new Date(r.LastSeen))/60000);
         const ago=mins<60?mins+'m ago':mins<1440?Math.round(mins/60)+'h ago':Math.round(mins/1440)+'d ago';
         const c=sevColor[r.Severity]||'#333';
+        const cnt=Number(r.Count||1);
         return `<div class="tac-feed-item">
           <div class="tac-feed-dot" style="background:${c};box-shadow:0 0 4px ${c}"></div>
-          <div class="tac-feed-name">${r.Title||'Untitled'}</div>
+          <div class="tac-feed-name">${r.Title||'Untitled'}${cnt>1?` <span style="color:#664444;font-size:9px">[x${cnt}]</span>`:''}</div>
           <div class="tac-feed-meta">
             <span class="tac-feed-time">${ago}</span>
             <span class="tac-feed-sev" style="color:${c}">${(r.Severity||'').toUpperCase()}</span>
@@ -844,7 +845,7 @@ async function loadTacticalOps(){
   if(lu)lu.textContent='UPDATED '+new Date().toLocaleTimeString('en-US',{hour12:false});
 }
 
-setInterval(()=>{if(aDept==='home')loadTacticalOps();},300000);
+setInterval(()=>{if(aDept==='home')loadTacticalOps();},600000);
 async function loadHomeIncidents(){
   try{
     const rows=await runLA(`SecurityIncident
@@ -880,6 +881,8 @@ const DEPT_CONFIG={
     {id:'d12',        label:'Saviynt'},
     {id:'def_oci',    label:'OCI Threats'},
     {id:'d10',        label:'GitHub / DevOps'},
+    {id:'def_me',     label:'Middle East Threats'},
+    {id:'def_datadog',label:'DataDog'},
   ]},
   arch:{label:'🏗️ CyberArchitecture',dashes:[
     {id:'arch_exec',  label:'Executive Summary'},
@@ -1232,7 +1235,22 @@ const KDEFS={
     {l:'Entitlement Changes',c:'kc-or',q:{t:'la',q:`SaviyntAuditLogs_CL|where TimeGenerated>=ago(30d)|where ObjectType in ('ENTITLEMENTS','ROLE')|where ActionTaken!='Show'|summarize Count=count()`},k:'Count'},
     {l:'Permission Changes SP',c:'kc-rd',q:{t:'la',q:`OfficeActivity|where TimeGenerated>=ago(7d)|where OfficeWorkload=='SharePoint'|where Operation in ('SharingInheritanceBroken','PermissionLevelAdded','SiteCollectionAdminAdded')|summarize Count=count()`},k:'Count'},
   ],
-  grc_regulatory:[
+  def_me:[
+    {l:'Middle East Incidents (30d)',c:'kc-rd',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title startswith 'ME'|summarize Count=count()`},k:'Count'},
+    {l:'BLOCKED Users',c:'kc-rd',q:{t:'la',q:`_GetWatchlist('MiddleEast_MonitoredUsers')|where tostring(column_ifexists('RestrictionTier',''))=='BLOCKED'|summarize Count=count()`},k:'Count'},
+    {l:'ESSENTIAL_ONLY Users',c:'kc-or',q:{t:'la',q:`_GetWatchlist('MiddleEast_MonitoredUsers')|where tostring(column_ifexists('RestrictionTier',''))=='ESSENTIAL_ONLY'|summarize Count=count()`},k:'Count'},
+    {l:'Brute Force (30d)',c:'kc-yw',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title has 'ME' and Title has 'Brute Force'|summarize Count=count()`},k:'Count'},
+    {l:'Auth Process Mod (30d)',c:'kc-rd',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title has 'ME - Auth Process Modification'|summarize Count=count()`},k:'Count'},
+    {l:'Suspicious Provisioning',c:'kc-or',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title has 'ME - Suspicious Provisioning'|summarize Count=count()`},k:'Count'},
+  ],
+  def_datadog:[
+    {l:'Total DD Alerts (30d)',c:'kc-cy',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title startswith 'DD'|summarize Count=count()`},k:'Count'},
+    {l:'CMMC Cert Mismatches',c:'kc-rd',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title has 'DD - CMMC: Certificate Template Version Mismatch'|summarize Count=count()`},k:'Count'},
+    {l:'Cert Fetch Failures',c:'kc-or',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title has 'DD - CMMC: Certificate Fetch Failure'|summarize Count=count()`},k:'Count'},
+    {l:'Maximo HTTP Anomalies',c:'kc-yw',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title has 'DD - Web: Abnormal HTTP Verb'|summarize Count=count()`},k:'Count'},
+    {l:'5xx Error Spikes',c:'kc-bl',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title has 'DD - Web: HTTP 5xx Error Rate Spike'|summarize Count=count()`},k:'Count'},
+    {l:'High Severity (30d)',c:'kc-rd',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Title startswith 'DD'|where Severity=='High'|summarize Count=count()`},k:'Count'},
+  ],
     {l:'Critical Controls',c:'kc-rd',q:{t:'arg',q:`securityresources|where type=='microsoft.security/assessments'|where properties.status.code=='Unhealthy'|where properties.metadata.severity in ('High','Critical')|summarize Count=count()`},k:'Count'},
     {l:'Secure Score (%)',c:'kc-cy',q:{t:'arg',q:`securityresources|where type=='microsoft.security/securescores'|extend Pct=round(todouble(properties.score.percentage)*100,1)|summarize Score=round(avg(Pct),1)`},k:'Score'},
     {l:'Policy Violations',c:'kc-rd',q:{t:'arg',q:`policyresources|where type=='microsoft.policyinsights/policystates'|where properties.complianceState=='NonCompliant'|summarize Count=count()`},k:'Count'},
@@ -2797,6 +2815,98 @@ function toggleSubDropdown() {
   }
 }
 
+// ── MIDDLE EAST THREAT INTELLIGENCE PANELS ───────────────────
+PANELS.def_me=[
+  {label:'Incidents by Type',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title startswith 'ME'
+| summarize Count=count() by Title, Severity
+| order by Count desc | take 50
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'`},
+  {label:'Incident Trend',type:'la',viz:'timechart',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title startswith 'ME'
+| summarize Count=count() by bin(TimeGenerated,1d), Severity
+| order by TimeGenerated asc`},
+  {label:'BLOCKED User Sign-ins',type:'la',query:`let Blocked=_GetWatchlist('MiddleEast_MonitoredUsers')
+| where tostring(column_ifexists('RestrictionTier',''))=='BLOCKED'
+| project WatchlistUPN=tostring(SearchKey);
+let MECodes=dynamic(["BH","CY","EG","IR","IQ","IL","JO","KW","LB","LY","OM","QA","SA","SY","TR","AE","YE"]);
+SigninLogs
+| where TimeGenerated {TimeRange}
+| where Location in (MECodes)
+| join kind=inner Blocked on $left.UserPrincipalName==$right.WatchlistUPN
+| summarize Attempts=count(), FailCount=countif(ResultType!='0'), Countries=make_set(Location), Apps=make_set(AppDisplayName), LastSeen=max(TimeGenerated) by UserPrincipalName
+| order by Attempts desc | take 200
+| extend EntraLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SignInEventsV3'`},
+  {label:'ESSENTIAL_ONLY Anomalies',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title has 'ME - Essential Only Anomaly'
+| summarize Count=count() by Title, Severity, bin(TimeGenerated,1d)
+| order by TimeGenerated desc | take 200
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'`},
+  {label:'UNKNOWN_USER Targets (AE)',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title has 'ME Sign-In UNKNOWN_USER'
+| extend UserTarget=extract(@'UNKNOWN_USER: ([^\s]+)', 1, Title)
+| extend SourceCountry=extract(@'from ([A-Z]{2})', 1, Title)
+| summarize Count=count(), LastSeen=max(TimeGenerated) by UserTarget, SourceCountry, Severity
+| order by Count desc | take 100
+| extend EntraLink='https://entra.microsoft.com/#view/Microsoft_AAD_IAM/SignInEventsV3'`},
+  {label:'High Severity Middle East Incidents',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title startswith 'ME'
+| where Severity in ('High','Critical')
+| project TimeGenerated, Title, Severity, Status, IncidentNumber
+| order by TimeGenerated desc | take 200
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'`},
+  {label:'Geo Sign-in Monitored Users',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title has 'ME Geo Sign-In - Monitored User'
+| summarize Count=count() by Title, Severity, bin(TimeGenerated,1d)
+| order by TimeGenerated desc | take 200
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'`},
+];
+
+// ── DATADOG PANELS ────────────────────────────────────────────
+PANELS.def_datadog=[
+  {label:'All DataDog Alerts',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title startswith 'DD'
+| summarize Count=count() by Title, Severity
+| order by Count desc | take 100
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'`},
+  {label:'Alert Trend',type:'la',viz:'timechart',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title startswith 'DD'
+| summarize Count=count() by bin(TimeGenerated,1d), Severity
+| order by TimeGenerated asc`},
+  {label:'CMMC Cert Mismatches',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title has 'DD - CMMC: Certificate Template Version Mismatch'
+| project TimeGenerated, Title, Severity, Status, IncidentNumber
+| order by TimeGenerated desc | take 500
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'`},
+  {label:'CMMC Cert Fetch Failures',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title has 'DD - CMMC: Certificate Fetch Failure'
+| project TimeGenerated, Title, Severity, Status, IncidentNumber
+| order by TimeGenerated desc | take 500
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'`},
+  {label:'Maximo HTTP Anomalies',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title has 'DD - Web: Abnormal HTTP Verb Against Maximo'
+| project TimeGenerated, Title, Severity, Status, IncidentNumber
+| order by TimeGenerated desc | take 500
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'`},
+  {label:'5xx Error Rate Spikes',type:'la',query:`SecurityIncident
+| where TimeGenerated {TimeRange}
+| where Title has 'DD - Web: HTTP 5xx Error Rate Spike'
+| project TimeGenerated, Title, Severity, Status, IncidentNumber
+| order by TimeGenerated desc | take 500
+| extend SentinelLink='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/6/id/%2Fsubscriptions%2F7ca56f5e-a44c-4311-a34a-0729be8f5a6e%2Fresourcegroups%2Frg-security-prod%2Fproviders%2Fmicrosoft.securityinsightsarg%2Fsentinel%2Flaw-security-prod'`},
+];
+
 // ── AUTH & INIT ───────────────────────────────────────────────
 function onAuth(){
   document.getElementById('loginBtn').style.display='none';
@@ -2808,7 +2918,7 @@ function onAuth(){
   document.getElementById('homeView').style.display='flex';
   document.getElementById('subFilterWrap').style.display='block';
   // Pre-build core dashes
-  ['d6','d7','d5','d1','d2','d3','d4','d8','d10','d11','d12','d13'].forEach(id=>{
+  ['d6','d7','d5','d1','d2','d3','d4','d8','d10','d11','d12','d13','def_me','def_datadog'].forEach(id=>{
     buildDashSection(id);
     if(PANELS[id])buildDash(id,PANELS[id]);
   });
