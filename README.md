@@ -63,21 +63,21 @@ Executive summary view with KPI cards for each department and a live tactical op
 | Identity Threats | Entra ID, Sentinel UEBA | Sign-in anomalies, UEBA anomalies, CA policy coverage, SP sign-in activity |
 | Email Threats | Proofpoint TAP | Blocked/delivered threats by sender, classification, score |
 | DNS Threats | Cisco Umbrella | Blocked domains by category, volume, identity |
-| Privileged Access | Entra ID, ARG | Identity & PIM, managed identities, KV secrets/certs, CA policy |
+| Privileged Access | Entra ID, ARG | Identity and PIM, managed identities, KV secrets/certs, CA policy |
 | SharePoint | Office 365 | External sharing, bulk downloads, sensitive file activity, anonymous links |
 | Saviynt | Saviynt ECM | Audit logs, user details, access requests, endpoints, user groups |
-| OCI Threats | Oracle Cloud | Identity & sign-ins, user/group changes, Kubernetes, networking, compute |
+| OCI Threats | Oracle Cloud | Identity and sign-ins, user/group changes, Kubernetes, networking, compute |
 | GitHub / DevOps | GitHub Enterprise | Dependabot alerts, secret scanning, audit log, actions |
 
 ### CyberArchitecture
 | Tab | Data Sources | What It Shows |
 |---|---|---|
 | Executive Summary | ARG, Defender | Posture overview, infrastructure risk, compliance trend, secure score by subscription |
-| Posture & Compliance | Defender for Cloud | Vulnerability management, attack paths, AKS security, backup coverage, orphaned resources, compliance, secure score |
+| Posture and Compliance | Defender for Cloud | Vulnerability management, attack paths, AKS security, backup coverage, orphaned resources, compliance, secure score |
 | Networking | ARG | VNet overview, subnets, NSG rules, public IPs, VNet peering, VPN gateways, Azure Firewall, DDoS, private endpoints, Bastion |
-| Compute & Infra | ARG | VM inventory, disk encryption, monitoring agents, AKS clusters, container registries, VMSS |
-| App & Integration | ARG | App Services, API Management, Web App security, Function Apps |
-| Storage & Data | ARG | Storage accounts, Key Vaults, secrets/certs, SQL/Postgres/MySQL/Cosmos/MongoDB |
+| Compute and Infra | ARG | VM inventory, disk encryption, monitoring agents, AKS clusters, container registries, VMSS |
+| App and Integration | ARG | App Services, API Management, Web App security, Function Apps |
+| Storage and Data | ARG | Storage accounts, Key Vaults, secrets/certs, SQL/Postgres/MySQL/Cosmos/MongoDB |
 | OCI Architecture | Oracle Cloud | Kubernetes, integration activity, networking, compute, database, key management |
 | Workspace Health | Log Analytics | Workspace inventory, sentinel health, ingestion metrics |
 
@@ -87,9 +87,9 @@ Executive summary view with KPI cards for each department and a live tactical op
 | Executive Summary | ARG, Policy | Governance overview, access risk, policy compliance by subscription, regulatory controls |
 | Governance | ARG | Subscription overview, management groups, RBAC summary, tag coverage, shadow subscriptions |
 | Policy | Policy Insights, Defender | Policy compliance, regulatory compliance, secure score |
-| Access Control | Entra ID, ARG | Identity & PIM, CA policy coverage, privileged roles, guest principals, RBAC summary |
+| Access Control | Entra ID, ARG | Identity and PIM, CA policy coverage, privileged roles, guest principals, RBAC summary |
 | Conditional Access | Entra ID, Sentinel | Sign-in failures, legacy auth, geo distribution, CA policy coverage |
-| Audit & Activity | Azure Activity, SharePoint, OCI | Audit overview, all activity, admin activity, permission changes |
+| Audit and Activity | Azure Activity, SharePoint, OCI | Audit overview, all activity, admin activity, permission changes |
 | Regulatory | Defender for Cloud | Compliance frameworks, secure score, quick wins, remediation guidance |
 
 ---
@@ -163,7 +163,7 @@ Sign-in uses **MSAL redirect flow** (`loginRedirect`) rather than popups, which 
 
 ---
 
-## Security Architecture & Credential Handling
+## Security Architecture and Credential Handling
 
 This section addresses questions commonly raised by architects reviewing the repository.
 
@@ -300,7 +300,7 @@ GitHub Pages will serve it at `https://<org>.github.io/<repo>/`. Pages typically
 
 ---
 
-## Security & Privacy
+## Security and Privacy
 
 - Authentication is handled entirely by Microsoft MSAL - no credentials are stored anywhere in the app.
 - All API calls are made directly from the browser to Microsoft APIs using your delegated token.
