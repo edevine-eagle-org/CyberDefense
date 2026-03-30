@@ -93,6 +93,10 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .kval{font-family:var(--fh);font-size:26px;font-weight:700;line-height:1;}
 .kc-cy .kval{color:var(--cyan)}.kc-rd .kval{color:var(--red)}.kc-gn .kval{color:var(--green)}.kc-yw .kval{color:var(--yellow)}.kc-bl .kval{color:var(--blue)}.kc-or .kval{color:var(--orange)}
 .kval.ldg{color:var(--txt3);font-size:18px;}
+.kdelta{font-family:var(--fm);font-size:10px;margin-top:5px;line-height:1;min-height:14px;letter-spacing:0.2px;}
+.kdelta.bad{color:var(--red);}
+.kdelta.good{color:var(--green);}
+.kdelta.nc{color:var(--txt3);}
 
 /* SUB TABS */
 .stbar-wrap{background:var(--bg3);border-bottom:1px solid var(--border);}
@@ -289,6 +293,10 @@ a.pl:hover{background:var(--cyan-dim);border-color:var(--cyan);}
 <body>
 
 <script>
+// ── CONFIGURATION ─────────────────────────────────────────────
+// clientId/tenantId/workspaceId are identifiers, not credentials.
+// Security is enforced by Azure AD — these IDs are useless without a valid authenticated session.
+// If this repo ever goes public, rotate the App Registration rather than trying to hide these.
 const CFG={
   clientId:'467a1486-6459-4661-8397-c1dd41cd38e7',
   tenantId:'d810b06c-d004-4d52-b0aa-4f3581ee7020',
@@ -298,7 +306,16 @@ const CFG={
 };
 const NCFG=CFG.clientId==='YOUR_CLIENT_ID_HERE';
 const TR_ISO={'1d':'P1D','7d':'P7D','14d':'P14D','30d':'P30D'};
+const TR_ISO_PREV={'1d':'P2D','7d':'P14D','14d':'P28D','30d':'P60D'};
 const TR_AGO={'1d':'1d','7d':'7d','14d':'14d','30d':'30d'};
+const TR_PREV_KQL={'1d':'>= ago(2d) and TimeGenerated < ago(1d)','7d':'>= ago(14d) and TimeGenerated < ago(7d)','14d':'>= ago(28d) and TimeGenerated < ago(14d)','30d':'>= ago(60d) and TimeGenerated < ago(30d)'};
+function gtr(){return document.getElementById('trSel').value;}
+function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
+// Converts hardcoded >=ago(Xd) KQL filters to {TimeRange} so the time picker governs them.
+// ago(1d) is intentionally excluded — that's used for fixed "today" ingestion metrics.
+function normalizeQ(q){return q.replace(/>=ago\(7d\)/g,'{TimeRange}').replace(/>=ago\(30d\)/g,'{TimeRange}');}
+// Replaces {TimeRange} with the equivalent previous period window for trend comparison.
+function itrPrev(q){return normalizeQ(q).replace(/\{TimeRange\}/g,TR_PREV_KQL[gtr()]);}
 function copyDashLink(){
   const url='https://edevine-eagle-org.github.io/CyberDefense/';
   navigator.clipboard.writeText(url).then(()=>{
@@ -315,8 +332,6 @@ function signOut(){
     mApp.logoutRedirect({account:acct,postLogoutRedirectUri:location.origin+location.pathname});
   }
 }
-function gtr(){return document.getElementById('trSel').value;}
-function itr(q){return q.replace(/\{TimeRange\}/g,`>= ago(${TR_AGO[gtr()]})`);}
 </script>
 
 <div id="topbar">
@@ -513,11 +528,11 @@ async function runARG(q){
   if(!r.ok)throw new Error(`ARG ${r.status}: ${await r.text()}`);
   return(await r.json()).data||[];
 }
-async function runLA(q){
+async function runLA(q,ts){
   const t=await tok('https://api.loganalytics.io/Data.Read');
   const r=await fetch(`https://api.loganalytics.io/v1/workspaces/${CFG.workspaceId}/query`,{
     method:'POST',headers:{'Authorization':'Bearer '+t,'Content-Type':'application/json'},
-    body:JSON.stringify({query:itr(q),timespan:TR_ISO[gtr()]})
+    body:JSON.stringify({query:itr(q),timespan:ts||TR_ISO[gtr()]})
   });
   if(!r.ok)throw new Error(`LA ${r.status}: ${await r.text()}`);
   const d=await r.json();
@@ -1096,7 +1111,7 @@ const KDEFS={
   ],
   d6:[
     {l:'Total Devices',c:'kc-cy',q:{t:'la',q:`DeviceInfo|where Timestamp>=ago(7d)|summarize arg_max(Timestamp,*)by DeviceId|summarize Count=count()`},k:'Count'},
-    {l:'Onboarded',c:'kc-gn',q:{t:'la',q:`DeviceInfo|where Timestamp>=ago(7d)|summarize arg_max(Timestamp,*)by DeviceId|where OnboardingStatus=='Onboarded'|summarize Count=count()`},k:'Count'},
+    {l:'Onboarded',c:'kc-gn',better:'up',q:{t:'la',q:`DeviceInfo|where Timestamp>=ago(7d)|summarize arg_max(Timestamp,*)by DeviceId|where OnboardingStatus=='Onboarded'|summarize Count=count()`},k:'Count'},
     {l:'Not Onboarded',c:'kc-rd',q:{t:'la',q:`DeviceInfo|where Timestamp>=ago(7d)|summarize arg_max(Timestamp,*)by DeviceId|where OnboardingStatus!='Onboarded'|summarize Count=count()`},k:'Count'},
     {l:'Critical Vulns',c:'kc-rd',q:{t:'la',q:`DeviceTvmSoftwareVulnerabilities|where TimeGenerated>=ago(7d)|where VulnerabilitySeverityLevel=='Critical'|summarize Count=count()`},k:'Count'},
     {l:'Open Incidents',c:'kc-yw',q:{t:'la',q:`SecurityIncident|where TimeGenerated>=ago(30d)|where Status=='Active'|summarize Count=count()`},k:'Count'},
@@ -1133,7 +1148,7 @@ const KDEFS={
     {l:'Unique Identities',c:'kc-yw',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Blocked'|summarize Count=dcount(Policy_Identity_s)`},k:'Count'},
     {l:'DNS Allowed (7d)',c:'kc-gn',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|where Action_s=='Allowed'|summarize Count=count()`},k:'Count'},
     {l:'Total DNS Queries',c:'kc-bl',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|summarize Count=count()`},k:'Count'},
-    {l:'Block Rate (%)',c:'kc-cy',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|summarize Total=count(),Blocked=countif(Action_s=='Blocked')|extend Count=round(toreal(Blocked)/Total*100,1)`},k:'Count'},
+    {l:'Block Rate (%)',c:'kc-cy',better:'up',q:{t:'la',q:`Cisco_Umbrella_dns_CL|where TimeGenerated>=ago(7d)|summarize Total=count(),Blocked=countif(Action_s=='Blocked')|extend Count=round(toreal(Blocked)/Total*100,1)`},k:'Count'},
   ],
   def_privileged:[
     {l:'Privileged Roles',c:'kc-rd',q:{t:'arg',q:`AuthorizationResources|where type=='microsoft.authorization/roleassignments'|extend RoleId=tolower(tostring(properties.roleDefinitionId))|where RoleId has_any ('8e3af657','b24988ac','18d7d88d','fb1c8493')|summarize Count=count()`},k:'Count'},
@@ -1204,7 +1219,7 @@ const KDEFS={
   grc_ca:[
     {l:'Sign-in Failures (7d)',c:'kc-rd',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ResultType!='0'|summarize Count=count()`},k:'Count'},
     {l:'Legacy Auth (7d)',c:'kc-or',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where ClientAppUsed in ('Exchange ActiveSync','IMAP4','POP3','Authenticated SMTP','Autodiscover')|summarize Count=count()`},k:'Count'},
-    {l:'MFA Success (7d)',c:'kc-gn',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where AuthenticationRequirement=='multiFactorAuthentication'|where ResultType=='0'|summarize Count=count()`},k:'Count'},
+    {l:'MFA Success (7d)',c:'kc-gn',better:'up',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|where AuthenticationRequirement=='multiFactorAuthentication'|where ResultType=='0'|summarize Count=count()`},k:'Count'},
     {l:'CA Policy Failures',c:'kc-yw',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|mv-expand CAPolicy=todynamic(ConditionalAccessPolicies)|where tostring(CAPolicy.result)=='failure'|summarize Count=count()`},k:'Count'},
     {l:'Unique Locations',c:'kc-bl',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|extend Country=tostring(LocationDetails.countryOrRegion)|summarize Count=dcount(Country)`},k:'Count'},
     {l:'Sign-in Anomalies',c:'kc-rd',q:{t:'la',q:`SigninLogs|where TimeGenerated>=ago(7d)|summarize FailCount=count() by UserPrincipalName|where FailCount>10|summarize Count=count()`},k:'Count'},
@@ -1231,15 +1246,35 @@ async function loadKPIs(id){
   const strip=document.getElementById('kpi-'+id);
   const defs=KDEFS[id];
   if(!strip||!defs)return;
-  strip.innerHTML=defs.map((d,i)=>`<div class="kcard ${d.c}"><div class="klbl">${d.l}</div><div class="kval ldg" id="kv-${id}-${i}">…</div></div>`).join('');
+  strip.innerHTML=defs.map((d,i)=>`<div class="kcard ${d.c}"><div class="klbl">${d.l}</div><div class="kval ldg" id="kv-${id}-${i}">…</div><div class="kdelta nc" id="kd-${id}-${i}"></div></div>`).join('');
   defs.forEach(async(d,i)=>{
+    const isLA=d.q.t==='la';
+    const q=d.q.q;
     try{
-      const rows=d.q.t==='arg'?await runARG(d.q.q):await runLA(d.q.q);
+      const [rows,prev]=await Promise.all([
+        isLA?runLA(normalizeQ(q)):runARG(q),
+        isLA?runLA(itrPrev(q),TR_ISO_PREV[gtr()]).catch(()=>null):Promise.resolve(null)
+      ]);
       const v=rows?.[0]?.[d.k];
       const el=document.getElementById(`kv-${id}-${i}`);
-      el.textContent=v!==undefined?Number(v).toLocaleString():'-';
-      el.classList.remove('ldg');
-    }catch{document.getElementById(`kv-${id}-${i}`).textContent='-';}
+      const de=document.getElementById(`kd-${id}-${i}`);
+      if(el){el.textContent=v!==undefined?Number(v).toLocaleString():'-';el.classList.remove('ldg');}
+      if(de&&isLA&&prev&&v!==undefined){
+        const pv=prev?.[0]?.[d.k];
+        if(pv!==undefined&&pv!==null){
+          const curr=Number(v),prv=Number(pv),diff=curr-prv;
+          if(diff===0){de.textContent='— no change';de.className='kdelta nc';}
+          else{
+            const dir=diff>0?'▲':'▼';
+            const betterUp=d.better==='up';
+            const isBad=(diff>0&&!betterUp)||(diff<0&&betterUp);
+            const pct=prv!==0?` (${Math.round(Math.abs(diff)/prv*100)}%)` :'';
+            de.textContent=`${dir} ${Math.abs(diff).toLocaleString()}${pct} vs prev`;
+            de.className=`kdelta ${isBad?'bad':'good'}`;
+          }
+        }
+      }
+    }catch{const el=document.getElementById(`kv-${id}-${i}`);if(el){el.textContent='-';el.classList.remove('ldg');}}
   });
 }
 
